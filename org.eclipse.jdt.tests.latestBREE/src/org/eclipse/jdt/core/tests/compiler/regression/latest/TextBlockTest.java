@@ -1,5 +1,5 @@
 /*******************************************************************************
- * Copyright (c) 2019 IBM Corporation and others.
+ * Copyright (c) 2019, 2020 IBM Corporation and others.
  * All rights reserved. This program and the accompanying materials
  * are made available under the terms of the Eclipse Public License v1.0
  * which accompanies this distribution, and is available at
@@ -16,6 +16,7 @@
  *******************************************************************************/
 package org.eclipse.jdt.core.tests.compiler.regression.latest;
 
+import java.util.HashMap;
 import java.util.Map;
 
 import org.eclipse.jdt.core.tests.compiler.regression.AbstractRegressionTest;
@@ -1370,5 +1371,33 @@ public class TextBlockTest extends AbstractRegressionTest {
 				getCompilerOptions(),
 				new String[] {"--enable-preview"});
 	}
-	
+	public void testBug553252() {
+		Map<String, String> defaultOptions = super.getCompilerOptions();
+		Map<String, String> copy = new HashMap<String, String>(defaultOptions);
+		copy.put(CompilerOptions.OPTION_Compliance, CompilerOptions.VERSION_13);
+		copy.put(CompilerOptions.OPTION_Source, CompilerOptions.VERSION_13);
+		copy.put(CompilerOptions.OPTION_TargetPlatform, CompilerOptions.VERSION_13);
+		copy.put(CompilerOptions.OPTION_EnablePreviews, CompilerOptions.ENABLED);
+		copy.put(CompilerOptions.OPTION_ReportPreviewFeatures, CompilerOptions.IGNORE);
+		runNegativeTest(
+				new String[] {
+						"X.java",
+						"public class X {\n" +
+						"	public static String textb = \"\"\"\n" + 
+						"\"\"\";\n" +
+						"	public static void main(String[] args) {\n" +
+						"		System.out.println(textb);\n" +
+						"	}\n" +
+						"}\n"
+				},
+				"----------\n" + 
+				"1. ERROR in X.java (at line 0)\n" + 
+				"	public class X {\n" + 
+				"	^\n" + 
+				"Preview features enabled at an invalid source release level 13, preview can be enabled only at source level 14\n" + 
+				"----------\n",
+				null,
+				true,
+				copy);
+	}
 }
