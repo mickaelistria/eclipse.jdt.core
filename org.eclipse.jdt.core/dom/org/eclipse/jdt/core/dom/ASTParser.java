@@ -127,6 +127,8 @@ public class ASTParser {
 	 */
 	public static final int K_COMPILATION_UNIT = 0x08;
 
+	public static boolean NEW_INSTANCE_USE_JAVAC = false;
+
 	/**
 	 * Creates a new object for creating a Java abstract syntax tree
      * (AST) following the specified set of API rules.
@@ -221,6 +223,8 @@ public class ASTParser {
 	 */
 	private int bits;
 
+	private final boolean useJavac;
+
 	/**
 	 * Creates a new AST parser for the given API level.
 	 * <p>
@@ -233,6 +237,7 @@ public class ASTParser {
 	ASTParser(int level) {
 		DOMASTUtil.checkASTLevel(level);
 		this.apiLevel = level;
+		this.useJavac = NEW_INSTANCE_USE_JAVAC;
 		initializeDefaults();
 	}
 
@@ -945,6 +950,9 @@ public class ASTParser {
 			if ((this.bits & CompilationUnitResolver.IGNORE_METHOD_BODIES) != 0) {
 				flags |= ICompilationUnit.IGNORE_METHOD_BODIES;
 			}
+			if (this.useJavac) {
+				flags |= CompilationUnitResolver.USE_JAVAC;
+			}
 			if ((this.bits & CompilationUnitResolver.RESOLVE_BINDING) != 0) {
 				if (this.project == null)
 					throw new IllegalStateException("project not specified"); //$NON-NLS-1$
@@ -1038,6 +1046,9 @@ public class ASTParser {
 			}
 			if ((this.bits & CompilationUnitResolver.IGNORE_METHOD_BODIES) != 0) {
 				flags |= ICompilationUnit.IGNORE_METHOD_BODIES;
+			}
+			if (this.useJavac) {
+				flags |= CompilationUnitResolver.USE_JAVAC;
 			}
 			if ((this.bits & CompilationUnitResolver.RESOLVE_BINDING) != 0) {
 				if (this.classpaths == null && this.sourcepaths == null && ((this.bits & CompilationUnitResolver.INCLUDE_RUNNING_VM_BOOTCLASSPATH) == 0)) {
@@ -1549,4 +1560,129 @@ public class ASTParser {
 				}
 		}
 	}
+
+	public CompilationUnit convert(JCCompilationUnit unit, char[] source) {
+			try {
+				if(unit.compilationResult.recoveryScannerData != null) {
+					RecoveryScanner recoveryScanner = new RecoveryScanner(this.scanner, unit.compilationResult.recoveryScannerData.removeUnused());
+					this.scanner = recoveryScanner;
+					this.docParser.scanner = this.scanner;
+				}
+				this.compilationUnitSource = source;
+				this.compilationUnitSourceLength = source.length;
+				this.scanner.setSource(source, unit.compilationResult);
+				CompilationUnit compilationUnit = new CompilationUnit(this.ast);
+				compilationUnit.setStatementsRecoveryData(unit.compilationResult.recoveryScannerData);
+
+				// Parse comments
+				int[][] comments = unit.comments;
+				if (comments != null) {
+					buildCommentsTable(compilationUnit, comments);
+				}
+
+				// handle the package declaration immediately
+				// There is no node corresponding to the package declaration
+				if (this.resolveBindings) {
+					recordNodes(compilationUnit, unit);
+				}
+				if (unit.currentPackage != null) {
+					PackageDeclaration packageDeclaration = convertPackage(unit);
+					compilationUnit.setPackage(packageDeclaration);
+				}
+				org.eclipse.jdt.internal.compiler.ast.ImportReference[] imports = unit.imports;
+				if (imports != null) {
+					int importLength = imports.length;
+					for (int i = 0; i < importLength; i++) {
+						compilationUnit.imports().add(convertImport(imports[i]));
+					}
+				}
+
+				org.eclipse.jdt.internal.compiler.ast.ModuleDeclaration mod = unit.moduleDeclaration;
+				if (mod != null) {
+					ASTNode declaration = convertToModuleDeclaration(mod);
+					if (declaration == null) {
+						compilationUnit.setFlags(compilationUnit.getFlags() | ASTNode.MALFORMED);
+					} else {
+						compilationUnit.setModule((ModuleDeclaration) declaration);
+					}
+				} else {
+					org.eclipse.jdt.internal.compiler.ast.TypeDeclaration[] types = unit.types;
+					if (types != null) {
+						int typesLength = types.length;
+						for (int i = 0; i < typesLength; i++) {
+							org.eclipse.jdt.internal.compiler.ast.TypeDeclaration declaration = types[i];
+							if (CharOperation.equals(declaration.name, TypeConstants.PACKAGE_INFO_NAME)) {
+								continue;
+							}
+							ASTNode type = convert(declaration);
+							if (type == null) {
+								compilationUnit.setFlags(compilationUnit.getFlags() | ASTNode.MALFORMED);
+							} else {
+								if (type instanceof ModuleDeclaration)
+									compilationUnit.setModule((ModuleDeclaration) type);
+								else
+									compilationUnit.types().add(type);
+							}
+						}
+					}
+				}
+				compilationUnit.setSourceRange(unit.sourceStart, unit.sourceEnd - unit.sourceStart  + 1);
+
+				int problemLength = unit.compilationResult.problemCount;
+				if (problemLength != 0) {
+					CategorizedProblem[] resizedProblems = null;
+					final CategorizedProblem[] problems = unit.compilationResult.getProblems();
+					final int realProblemLength=problems.length;
+					if (realProblemLength == problemLength) {
+						resizedProblems = problems;
+					} else {
+						System.arraycopy(problems, 0, (resizedProblems = new CategorizedProblem[realProblemLength]), 0, realProblemLength);
+					}
+					ASTSyntaxErrorPropagator syntaxErrorPropagator = new ASTSyntaxErrorPropagator(resizedProblems);
+					compilationUnit.accept(syntaxErrorPropagator);
+					ASTRecoveryPropagator recoveryPropagator =
+						new ASTRecoveryPropagator(resizedProblems, unit.compilationResult.recoveryScannerData);
+					compilationUnit.accept(recoveryPropagator);
+					compilationUnit.setProblems(resizedProblems);
+				}
+				if (this.resolveBindings) {
+					lookupForScopes();
+				}
+				compilationUnit.initCommentMapper(this.scanner);
+				if (SourceRangeVerifier.DEBUG) {
+					String bugs = new SourceRangeVerifier().process(compilationUnit);
+					if (bugs != null) {
+						StringBuilder message = new StringBuilder("Bad AST node structure:");  //$NON-NLS-1$
+						String lineDelimiter = Util.findLineSeparator(source.toString().toCharArray());
+						if (lineDelimiter == null) lineDelimiter = System.getProperty("line.separator");//$NON-NLS-1$
+						message.append(lineDelimiter);
+						message.append(bugs.replace("\n", lineDelimiter)); //$NON-NLS-1$
+						message.append(lineDelimiter);
+						message.append("----------------------------------- SOURCE BEGIN -------------------------------------"); //$NON-NLS-1$
+						message.append(lineDelimiter);
+						message.append(source);
+						message.append(lineDelimiter);
+						message.append("----------------------------------- SOURCE END -------------------------------------"); //$NON-NLS-1$
+						Util.log(new IllegalStateException("Bad AST node structure"), message.toString()); //$NON-NLS-1$
+						if (SourceRangeVerifier.DEBUG_THROW) {
+							throw new IllegalStateException(message.toString());
+						}
+					}
+				}
+				return compilationUnit;
+			} catch(IllegalArgumentException e) {
+				StringBuilder message = new StringBuilder("Exception occurred during compilation unit conversion:");  //$NON-NLS-1$
+				String lineDelimiter = Util.findLineSeparator(source.toString().toCharArray());
+				if (lineDelimiter == null) lineDelimiter = System.getProperty("line.separator");//$NON-NLS-1$
+				message.append(lineDelimiter);
+				message.append("----------------------------------- SOURCE BEGIN -------------------------------------"); //$NON-NLS-1$
+				message.append(lineDelimiter);
+				message.append(source);
+				message.append(lineDelimiter);
+				message.append("----------------------------------- SOURCE END -------------------------------------"); //$NON-NLS-1$
+				Util.log(e, message.toString());
+				throw e;
+		}
+	}
+
 }

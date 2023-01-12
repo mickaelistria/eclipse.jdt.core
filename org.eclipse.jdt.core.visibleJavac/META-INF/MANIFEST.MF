@@ -1,0 +1,11 @@
+Manifest-Version: 1.0
+Bundle-ManifestVersion: 2
+Bundle-Name: Make Javac visible to OSGi
+Fragment-Host: system.bundle;extension:=framework
+Bundle-SymbolicName: org.eclipse.jdt.core.visibleJavac
+Bundle-Version: 1.0.0.qualifier
+Bundle-Vendor: Eclipse JDT
+Automatic-Module-Name: org.eclipse.jdt.core.visibleJavac
+Export-Package: com.sun.tools.javac.api,
+ com.sun.tools.javac.main,
+ com.sun.tools.javac.util
