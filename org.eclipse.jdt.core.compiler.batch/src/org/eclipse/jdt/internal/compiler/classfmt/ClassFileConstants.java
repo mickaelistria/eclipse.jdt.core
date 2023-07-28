@@ -20,36 +20,10 @@ package org.eclipse.jdt.internal.compiler.classfmt;
 
 import org.eclipse.jdt.internal.compiler.ast.ASTNode;
 
+import com.sun.tools.javac.jvm.ClassFile;
+import com.sun.tools.javac.jvm.ClassFile.Version;
+
 public interface ClassFileConstants {
-
-	int AccDefault = 0;
-	/*
-	 * Modifiers
-	 */
-	int AccPublic       = 0x0001;
-	int AccPrivate      = 0x0002;
-	int AccProtected    = 0x0004;
-	int AccStatic       = 0x0008;
-	int AccFinal        = 0x0010;
-	int AccSynchronized = 0x0020;
-	int AccVolatile     = 0x0040;
-	int AccBridge       = 0x0040;
-	int AccTransient    = 0x0080;
-	int AccVarargs      = 0x0080;
-	int AccNative       = 0x0100;
-	int AccInterface    = 0x0200;
-	int AccAbstract     = 0x0400;
-	int AccStrictfp     = 0x0800;
-	int AccSynthetic    = 0x1000;
-	int AccAnnotation   = 0x2000;
-	int AccEnum         = 0x4000;
-	int AccModule		= 0x8000;
-
-	/**
-	 * From classfile version 52 (compliance 1.8 up), meaning that a formal parameter is mandated
-	 * by a language specification, so all compilers for the language must emit it.
-	 */
-	int AccMandated     = 0x8000;
 
 	/**
 	 * Flags in module declaration - since java9
@@ -57,36 +31,12 @@ public interface ClassFileConstants {
 	int ACC_OPEN			= 0x0020;
 	int ACC_TRANSITIVE 		= 0x0020;
 	int ACC_STATIC_PHASE	= 0x0040;
-	int ACC_SYNTHETIC 		= 0x1000;
-
-	/**
-	 * Other VM flags.
-	 */
-	int AccSuper = 0x0020;
 
 	/**
 	 * Extra flags for types and members attributes (not from the JVMS, should have been defined in ExtraCompilerModifiers).
 	 */
 	int AccAnnotationDefault = ASTNode.Bit18; // indicate presence of an attribute  "DefaultValue" (annotation method)
 	int AccDeprecated = ASTNode.Bit21; // indicate presence of an attribute "Deprecated"
-
-	int Utf8Tag = 1;
-	int IntegerTag = 3;
-	int FloatTag = 4;
-	int LongTag = 5;
-	int DoubleTag = 6;
-	int ClassTag = 7;
-	int StringTag = 8;
-	int FieldRefTag = 9;
-	int MethodRefTag = 10;
-	int InterfaceMethodRefTag = 11;
-	int NameAndTypeTag = 12;
-	int MethodHandleTag = 15;
-	int MethodTypeTag = 16;
-	int DynamicTag = 17;
-	int InvokeDynamicTag = 18;
-	int ModuleTag = 19;
-	int PackageTag = 20;
 
 	int ConstantMethodRefFixedSize = 5;
 	int ConstantClassFixedSize = 3;
@@ -117,26 +67,26 @@ public interface ClassFileConstants {
 	int MethodHandleRefKindNewInvokeSpecial = 8;
 	int MethodHandleRefKindInvokeInterface = 9;
 
-	int MAJOR_VERSION_1_1 = 45;
-	int MAJOR_VERSION_1_2 = 46;
-	int MAJOR_VERSION_1_3 = 47;
-	int MAJOR_VERSION_1_4 = 48;
-	int MAJOR_VERSION_1_5 = 49;
-	int MAJOR_VERSION_1_6 = 50;
-	int MAJOR_VERSION_1_7 = 51;
-	int MAJOR_VERSION_1_8 = 52;
-	int MAJOR_VERSION_9 = 53;
-	int MAJOR_VERSION_10 = 54;
-	int MAJOR_VERSION_11 = 55;
-	int MAJOR_VERSION_12 = 56;
-	int MAJOR_VERSION_13 = 57;
-	int MAJOR_VERSION_14 = 58;
-	int MAJOR_VERSION_15 = 59;
-	int MAJOR_VERSION_16 = 60;
-	int MAJOR_VERSION_17 = 61;
-	int MAJOR_VERSION_18 = 62;
-	int MAJOR_VERSION_19 = 63;
-	int MAJOR_VERSION_20 = 64;
+	int MAJOR_VERSION_1_1 = Version.V45_3.major;
+	int MAJOR_VERSION_1_2 = 46; // not supported any longer by JDK
+	int MAJOR_VERSION_1_3 = 47; // not supported any longer by JDK
+	int MAJOR_VERSION_1_4 = 48; // not supported any longer by JDK
+	int MAJOR_VERSION_1_5 = Version.V49.major;
+	int MAJOR_VERSION_1_6 = Version.V50.major;
+	int MAJOR_VERSION_1_7 = Version.V51.major;
+	int MAJOR_VERSION_1_8 = Version.V52.major;
+	int MAJOR_VERSION_9 = Version.V53.major;
+	int MAJOR_VERSION_10 = Version.V54.major;
+	int MAJOR_VERSION_11 = Version.V55.major;
+	int MAJOR_VERSION_12 = Version.V56.major;
+	int MAJOR_VERSION_13 = Version.V57.major;
+	int MAJOR_VERSION_14 = Version.V58.major;
+	int MAJOR_VERSION_15 = Version.V59.major;
+	int MAJOR_VERSION_16 = Version.V60.major;
+	int MAJOR_VERSION_17 = Version.V61.major;
+	int MAJOR_VERSION_18 = 62; // more recent than minimal compatible JDK
+	int MAJOR_VERSION_19 = 63; // more recent than minimal compatible JDK
+	int MAJOR_VERSION_20 = 64; // more recent than minimal compatible JDK
 
 	int MAJOR_VERSION_0 = 44;
 	int MAJOR_LATEST_VERSION = MAJOR_VERSION_20;
@@ -146,30 +96,30 @@ public interface ClassFileConstants {
 	int MINOR_VERSION_2 = 2;
 	int MINOR_VERSION_3 = 3;
 	int MINOR_VERSION_4 = 4;
-	int MINOR_VERSION_PREVIEW = 0xffff;
+	int MINOR_VERSION_PREVIEW = ClassFile.PREVIEW_MINOR_VERSION;
 
 	// JDK 1.1 -> 9, comparable value allowing to check both major/minor version at once 1.4.1 > 1.4.0
 	// 16 unsigned bits for major, then 16 bits for minor
-	long JDK1_1 = ((long)ClassFileConstants.MAJOR_VERSION_1_1 << 16) + ClassFileConstants.MINOR_VERSION_3; // 1.1. is 45.3
-	long JDK1_2 =  ((long)ClassFileConstants.MAJOR_VERSION_1_2 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK1_3 =  ((long)ClassFileConstants.MAJOR_VERSION_1_3 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK1_4 = ((long)ClassFileConstants.MAJOR_VERSION_1_4 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK1_5 = ((long)ClassFileConstants.MAJOR_VERSION_1_5 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK1_6 = ((long)ClassFileConstants.MAJOR_VERSION_1_6 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK1_7 = ((long)ClassFileConstants.MAJOR_VERSION_1_7 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK1_8 = ((long)ClassFileConstants.MAJOR_VERSION_1_8 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK9 = ((long)ClassFileConstants.MAJOR_VERSION_9 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK10 = ((long)ClassFileConstants.MAJOR_VERSION_10 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK11 = ((long)ClassFileConstants.MAJOR_VERSION_11 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK12 = ((long)ClassFileConstants.MAJOR_VERSION_12 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK13 = ((long)ClassFileConstants.MAJOR_VERSION_13 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK14 = ((long)ClassFileConstants.MAJOR_VERSION_14 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK15 = ((long)ClassFileConstants.MAJOR_VERSION_15 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK16 = ((long)ClassFileConstants.MAJOR_VERSION_16 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK17 = ((long)ClassFileConstants.MAJOR_VERSION_17 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK18 = ((long)ClassFileConstants.MAJOR_VERSION_18 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK19 = ((long)ClassFileConstants.MAJOR_VERSION_19 << 16) + ClassFileConstants.MINOR_VERSION_0;
-	long JDK20 = ((long)ClassFileConstants.MAJOR_VERSION_20 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK1_1 = ((long)ClassFileConstants.MAJOR_VERSION_1_1 << 16) + ClassFileConstants.MINOR_VERSION_3; // 1.1. is 45.3
+	final long JDK1_2 =  ((long)ClassFileConstants.MAJOR_VERSION_1_2 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK1_3 =  ((long)ClassFileConstants.MAJOR_VERSION_1_3 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK1_4 = ((long)ClassFileConstants.MAJOR_VERSION_1_4 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK1_5 = ((long)ClassFileConstants.MAJOR_VERSION_1_5 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK1_6 = ((long)ClassFileConstants.MAJOR_VERSION_1_6 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK1_7 = ((long)ClassFileConstants.MAJOR_VERSION_1_7 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK1_8 = ((long)ClassFileConstants.MAJOR_VERSION_1_8 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK9 = ((long)ClassFileConstants.MAJOR_VERSION_9 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK10 = ((long)ClassFileConstants.MAJOR_VERSION_10 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK11 = ((long)ClassFileConstants.MAJOR_VERSION_11 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK12 = ((long)ClassFileConstants.MAJOR_VERSION_12 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK13 = ((long)ClassFileConstants.MAJOR_VERSION_13 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK14 = ((long)ClassFileConstants.MAJOR_VERSION_14 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK15 = ((long)ClassFileConstants.MAJOR_VERSION_15 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK16 = ((long)ClassFileConstants.MAJOR_VERSION_16 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK17 = ((long)ClassFileConstants.MAJOR_VERSION_17 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK18 = ((long)ClassFileConstants.MAJOR_VERSION_18 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK19 = ((long)ClassFileConstants.MAJOR_VERSION_19 << 16) + ClassFileConstants.MINOR_VERSION_0;
+	final long JDK20 = ((long)ClassFileConstants.MAJOR_VERSION_20 << 16) + ClassFileConstants.MINOR_VERSION_0;
 
 	public static long getLatestJDKLevel() {
 		return ((long)ClassFileConstants.MAJOR_LATEST_VERSION << 16) + ClassFileConstants.MINOR_VERSION_0;
@@ -183,13 +133,9 @@ public interface ClassFileConstants {
 	 * @return the compliance level for the given Java version
 	 */
 	public static long getComplianceLevelForJavaVersion(int major) {
-		switch(major) {
-			case ClassFileConstants.MAJOR_VERSION_1_1:
-				return ((long)ClassFileConstants.MAJOR_VERSION_1_1 << 16) + ClassFileConstants.MINOR_VERSION_3;
-			default:
-				major = Math.min(major, MAJOR_LATEST_VERSION);
-				return ((long)major << 16) + ClassFileConstants.MINOR_VERSION_0;
-		}
+		return major == ClassFileConstants.MAJOR_VERSION_1_1 ?
+				((long)ClassFileConstants.MAJOR_VERSION_1_1 << 16) + ClassFileConstants.MINOR_VERSION_3 :
+				((long)(Math.min(major, MAJOR_LATEST_VERSION)) << 16) + ClassFileConstants.MINOR_VERSION_0;
 	}
 	/*
 	 * cldc1.1 is 45.3, but we modify it to be different from JDK1_1.

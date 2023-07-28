@@ -44,6 +44,8 @@ import org.eclipse.jdt.internal.compiler.lookup.ExtraCompilerModifiers;
 import org.eclipse.jdt.internal.compiler.problem.ProblemSeverities;
 import org.eclipse.jdt.internal.compiler.util.Util;
 
+import com.sun.tools.javac.code.Flags;
+
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class CompilerOptions {
 
@@ -809,55 +811,40 @@ public class CompilerOptions {
 
 	public static String versionFromJdkLevel(long jdkLevel) {
 		int major = (int)(jdkLevel>>16);
-		switch (major) {
-			case ClassFileConstants.MAJOR_VERSION_1_1 :
-				if (jdkLevel == ClassFileConstants.JDK1_1)
-					return VERSION_1_1;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_1_2 :
-				if (jdkLevel == ClassFileConstants.JDK1_2)
-					return VERSION_1_2;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_1_3 :
-				if (jdkLevel == ClassFileConstants.JDK1_3)
-					return VERSION_1_3;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_1_4 :
-				if (jdkLevel == ClassFileConstants.JDK1_4)
-					return VERSION_1_4;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_1_5 :
-				if (jdkLevel == ClassFileConstants.JDK1_5)
-					return VERSION_1_5;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_1_6 :
-				if (jdkLevel == ClassFileConstants.JDK1_6)
-					return VERSION_1_6;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_1_7 :
-				if (jdkLevel == ClassFileConstants.JDK1_7)
-					return VERSION_1_7;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_1_8 :
-				if (jdkLevel == ClassFileConstants.JDK1_8)
-					return VERSION_1_8;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_9 :
-				if (jdkLevel == ClassFileConstants.JDK9)
-					return VERSION_9;
-				break;
-			case ClassFileConstants.MAJOR_VERSION_10 :
-				if (jdkLevel == ClassFileConstants.JDK10)
-					return VERSION_10;
-				break;
-			default:
-				if(major > ClassFileConstants.MAJOR_VERSION_10) {
-					return "" + (major - ClassFileConstants.MAJOR_VERSION_0); //$NON-NLS-1$
-				}
-				return  Util.EMPTY_STRING; // unknown version
-
+		if (major ==  ClassFileConstants.MAJOR_VERSION_1_1) {
+			if (jdkLevel == ClassFileConstants.JDK1_1)
+				return VERSION_1_1;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_1_2) {
+			if (jdkLevel == ClassFileConstants.JDK1_2)
+				return VERSION_1_2;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_1_3) {
+			if (jdkLevel == ClassFileConstants.JDK1_3)
+				return VERSION_1_3;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_1_4) {
+			if (jdkLevel == ClassFileConstants.JDK1_4)
+				return VERSION_1_4;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_1_5) {
+			if (jdkLevel == ClassFileConstants.JDK1_5)
+				return VERSION_1_5;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_1_6) {
+			if (jdkLevel == ClassFileConstants.JDK1_6)
+				return VERSION_1_6;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_1_7) {
+			if (jdkLevel == ClassFileConstants.JDK1_7)
+				return VERSION_1_7;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_1_8) {
+			if (jdkLevel == ClassFileConstants.JDK1_8)
+				return VERSION_1_8;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_9) {
+			if (jdkLevel == ClassFileConstants.JDK9)
+				return VERSION_9;
+		} else if (major == ClassFileConstants.MAJOR_VERSION_10) {
+			if (jdkLevel == ClassFileConstants.JDK10)
+				return VERSION_10;
+		} else if(major > ClassFileConstants.MAJOR_VERSION_10) {
+			return "" + (major - ClassFileConstants.MAJOR_VERSION_0); //$NON-NLS-1$
 		}
-		return Util.EMPTY_STRING; // unknown version
+		return  Util.EMPTY_STRING; // unknown version
 	}
 
 	public static long releaseToJDKLevel(String release) {
@@ -1438,11 +1425,11 @@ public class CompilerOptions {
 	}
 	public String getVisibilityString(int level) {
 		switch (level & ExtraCompilerModifiers.AccVisibilityMASK) {
-			case ClassFileConstants.AccPublic:
+			case Flags.PUBLIC:
 				return PUBLIC;
-			case ClassFileConstants.AccProtected:
+			case Flags.PROTECTED:
 				return PROTECTED;
-			case ClassFileConstants.AccPrivate:
+			case Flags.PRIVATE:
 				return PRIVATE;
 			default:
 				return DEFAULT;
@@ -1530,19 +1517,19 @@ public class CompilerOptions {
 		this.reportUnavoidableGenericTypeProblems = true;
 
 		// check javadoc comments tags
-		this.reportInvalidJavadocTagsVisibility = ClassFileConstants.AccPublic;
+		this.reportInvalidJavadocTagsVisibility = Flags.PUBLIC;
 		this.reportInvalidJavadocTags = false;
 		this.reportInvalidJavadocTagsDeprecatedRef = false;
 		this.reportInvalidJavadocTagsNotVisibleRef = false;
 		this.reportMissingJavadocTagDescription = RETURN_TAG;
 
 		// check missing javadoc tags
-		this.reportMissingJavadocTagsVisibility = ClassFileConstants.AccPublic;
+		this.reportMissingJavadocTagsVisibility = Flags.PUBLIC;
 		this.reportMissingJavadocTagsOverriding = false;
 		this.reportMissingJavadocTagsMethodTypeParameters = false;
 
 		// check missing javadoc comments
-		this.reportMissingJavadocCommentsVisibility = ClassFileConstants.AccPublic;
+		this.reportMissingJavadocCommentsVisibility = Flags.PUBLIC;
 		this.reportMissingJavadocCommentsOverriding = false;
 
 		// JSR bytecode inlining and sharing
@@ -1999,13 +1986,13 @@ public class CompilerOptions {
 		}
 		if ( (optionValue = optionsMap.get(OPTION_ReportInvalidJavadocTagsVisibility)) != null) {
 			if (PUBLIC.equals(optionValue)) {
-				this.reportInvalidJavadocTagsVisibility = ClassFileConstants.AccPublic;
+				this.reportInvalidJavadocTagsVisibility = Flags.PUBLIC;
 			} else if (PROTECTED.equals(optionValue)) {
-				this.reportInvalidJavadocTagsVisibility = ClassFileConstants.AccProtected;
+				this.reportInvalidJavadocTagsVisibility = Flags.PROTECTED;
 			} else if (DEFAULT.equals(optionValue)) {
-				this.reportInvalidJavadocTagsVisibility = ClassFileConstants.AccDefault;
+				this.reportInvalidJavadocTagsVisibility = 0;
 			} else if (PRIVATE.equals(optionValue)) {
-				this.reportInvalidJavadocTagsVisibility = ClassFileConstants.AccPrivate;
+				this.reportInvalidJavadocTagsVisibility = Flags.PRIVATE;
 			}
 		}
 		if ((optionValue = optionsMap.get(OPTION_ReportInvalidJavadocTags)) != null) {
@@ -2034,13 +2021,13 @@ public class CompilerOptions {
 		}
 		if ((optionValue = optionsMap.get(OPTION_ReportMissingJavadocTagsVisibility)) != null) {
 			if (PUBLIC.equals(optionValue)) {
-				this.reportMissingJavadocTagsVisibility = ClassFileConstants.AccPublic;
+				this.reportMissingJavadocTagsVisibility = Flags.PUBLIC;
 			} else if (PROTECTED.equals(optionValue)) {
-				this.reportMissingJavadocTagsVisibility = ClassFileConstants.AccProtected;
+				this.reportMissingJavadocTagsVisibility = Flags.PROTECTED;
 			} else if (DEFAULT.equals(optionValue)) {
-				this.reportMissingJavadocTagsVisibility = ClassFileConstants.AccDefault;
+				this.reportMissingJavadocTagsVisibility = 0;
 			} else if (PRIVATE.equals(optionValue)) {
-				this.reportMissingJavadocTagsVisibility = ClassFileConstants.AccPrivate;
+				this.reportMissingJavadocTagsVisibility = Flags.PRIVATE;
 			}
 		}
 		if ((optionValue = optionsMap.get(OPTION_ReportMissingJavadocTagsOverriding)) != null) {
@@ -2065,13 +2052,13 @@ public class CompilerOptions {
 		}
 		if ((optionValue = optionsMap.get(OPTION_ReportMissingJavadocCommentsVisibility)) != null) {
 			if (PUBLIC.equals(optionValue)) {
-				this.reportMissingJavadocCommentsVisibility = ClassFileConstants.AccPublic;
+				this.reportMissingJavadocCommentsVisibility = Flags.PUBLIC;
 			} else if (PROTECTED.equals(optionValue)) {
-				this.reportMissingJavadocCommentsVisibility = ClassFileConstants.AccProtected;
+				this.reportMissingJavadocCommentsVisibility = Flags.PROTECTED;
 			} else if (DEFAULT.equals(optionValue)) {
-				this.reportMissingJavadocCommentsVisibility = ClassFileConstants.AccDefault;
+				this.reportMissingJavadocCommentsVisibility = 0;
 			} else if (PRIVATE.equals(optionValue)) {
-				this.reportMissingJavadocCommentsVisibility = ClassFileConstants.AccPrivate;
+				this.reportMissingJavadocCommentsVisibility = Flags.PRIVATE;
 			}
 		}
 		if ((optionValue = optionsMap.get(OPTION_ReportMissingJavadocCommentsOverriding)) != null) {

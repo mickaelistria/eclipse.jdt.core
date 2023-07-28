@@ -49,6 +49,7 @@ package org.eclipse.jdt.internal.compiler.ast;
 import static org.eclipse.jdt.internal.compiler.ast.ExpressionContext.INVOCATION_CONTEXT;
 
 import java.util.HashMap;
+
 import org.eclipse.jdt.core.compiler.CharOperation;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
 import org.eclipse.jdt.internal.compiler.CompilationResult;
@@ -57,7 +58,6 @@ import org.eclipse.jdt.internal.compiler.ast.TypeReference.AnnotationPosition;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
 import org.eclipse.jdt.internal.compiler.codegen.ConstantPool;
-import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
 import org.eclipse.jdt.internal.compiler.flow.FieldInitsFakingFlowContext;
 import org.eclipse.jdt.internal.compiler.flow.FlowContext;
 import org.eclipse.jdt.internal.compiler.flow.FlowInfo;
@@ -95,6 +95,8 @@ import org.eclipse.jdt.internal.compiler.lookup.TypeIds;
 import org.eclipse.jdt.internal.compiler.lookup.TypeVariableBinding;
 import org.eclipse.jdt.internal.compiler.parser.Parser;
 import org.eclipse.jdt.internal.compiler.parser.Scanner;
+
+import com.sun.tools.javac.jvm.ByteCodes;
 
 public class ReferenceExpression extends FunctionalExpression implements IPolyExpression, InvocationSite {
 	// secret variable name
@@ -364,7 +366,7 @@ public class ReferenceExpression extends FunctionalExpression implements IPolyEx
 				MethodBinding mb = currentScope.getJavaLangObject().getExactMethod(TypeConstants.GETCLASS,
 						Binding.NO_PARAMETERS, currentScope.compilationUnitScope());
 				codeStream.dup();
-				codeStream.invoke(Opcodes.OPC_invokevirtual, mb, mb.declaringClass);
+				codeStream.invoke(ByteCodes.invokevirtual, mb, mb.declaringClass);
 				codeStream.pop();
 			}
 			if (this.lhs.isSuper() && !this.actualMethodBinding.isPrivate()) {
@@ -661,7 +663,7 @@ public class ReferenceExpression extends FunctionalExpression implements IPolyEx
 			if (isMethodReference() && this.haveReceiver && (this.original == this)) {
 				this.receiverVariable = new LocalVariableBinding(
 						(SecretReceiverVariableName + this.nameSourceStart).toCharArray(), this.lhs.resolvedType,
-						ClassFileConstants.AccDefault, false);
+						0, false);
 				scope.addLocalVariable(this.receiverVariable);
 				this.receiverVariable.setConstant(Constant.NotAConstant); // not inlinable
 				this.receiverVariable.useFlag = LocalVariableBinding.USED;

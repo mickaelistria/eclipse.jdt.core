@@ -35,7 +35,6 @@ import org.eclipse.jdt.internal.compiler.ast.MethodDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.QualifiedTypeReference;
 import org.eclipse.jdt.internal.compiler.ast.TypeDeclaration;
 import org.eclipse.jdt.internal.compiler.ast.TypeReference;
-import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileReader;
 import org.eclipse.jdt.internal.compiler.lookup.ExtraCompilerModifiers;
 import org.eclipse.jdt.internal.compiler.parser.TypeConverter;
@@ -66,13 +65,13 @@ public class BinaryTypeConverter extends TypeConverter {
 			int tag = reader.u1At(constantPoolOffsets[i]);
 			char[] name = null;
 			switch (tag) {
-				case ClassFileConstants.MethodRefTag :
-				case ClassFileConstants.InterfaceMethodRefTag :
+				case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Methodref :
+				case com.sun.tools.javac.jvm.ClassFile.CONSTANT_InterfaceMethodref :
 					int constantPoolIndex = reader.u2At(constantPoolOffsets[i] + 3);
 					int utf8Offset = constantPoolOffsets[reader.u2At(constantPoolOffsets[constantPoolIndex] + 3)];
 					name = reader.utf8At(utf8Offset + 3, reader.u2At(utf8Offset + 1));
 					break;
-				case ClassFileConstants.ClassTag :
+				case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Class :
 					utf8Offset = constantPoolOffsets[reader.u2At(constantPoolOffsets[i] + 1)];
 					name = reader.utf8At(utf8Offset + 3, reader.u2At(utf8Offset + 1));
 					break;
@@ -104,7 +103,7 @@ public class BinaryTypeConverter extends TypeConverter {
 		char[][] packageName = Util.toCharArrays(pkg.names);
 
 		if (packageName.length > 0) {
-			compilationUnit.currentPackage = new ImportReference(packageName, new long[]{0}, false, ClassFileConstants.AccDefault);
+			compilationUnit.currentPackage = new ImportReference(packageName, new long[]{0}, false, 0);
 		}
 
 		/* convert type */
@@ -201,7 +200,7 @@ public class BinaryTypeConverter extends TypeConverter {
 				argumentNames[i].toCharArray(),
 				0,
 				typeReference,
-				ClassFileConstants.AccDefault);
+				0);
 			// do not care whether was final or not
 		}
 

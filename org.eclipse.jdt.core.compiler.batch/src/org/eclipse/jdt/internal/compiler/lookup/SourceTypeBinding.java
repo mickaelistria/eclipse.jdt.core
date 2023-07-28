@@ -60,8 +60,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.LinkedHashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -89,13 +89,15 @@ import org.eclipse.jdt.internal.compiler.ast.TypeReference.AnnotationPosition;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.classfmt.ExternalAnnotationProvider;
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
-import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
 import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
 import org.eclipse.jdt.internal.compiler.impl.Constant;
 import org.eclipse.jdt.internal.compiler.problem.ProblemReporter;
 import org.eclipse.jdt.internal.compiler.problem.ProblemSeverities;
 import org.eclipse.jdt.internal.compiler.util.SimpleLookupTable;
 import org.eclipse.jdt.internal.compiler.util.Util;
+
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.jvm.ByteCodes;
 
 @SuppressWarnings({ "rawtypes", "unchecked" })
 public class SourceTypeBinding extends ReferenceBinding {
@@ -221,7 +223,7 @@ private void addDefaultAbstractMethods() {
 							}
 						}
 						MethodBinding defaultAbstract = new MethodBinding(
-								method.modifiers | ExtraCompilerModifiers.AccDefaultAbstract | ClassFileConstants.AccSynthetic,
+								method.modifiers | ExtraCompilerModifiers.AccDefaultAbstract | Flags.SYNTHETIC,
 								method.selector,
 								method.returnType,
 								method.parameters,
@@ -275,7 +277,7 @@ public FieldBinding addSyntheticFieldForInnerclass(LocalVariableBinding actualOu
 		synthField = new SyntheticFieldBinding(
 			CharOperation.concat(TypeConstants.SYNTHETIC_OUTER_LOCAL_PREFIX, actualOuterLocalVariable.name),
 			actualOuterLocalVariable.type,
-			ClassFileConstants.AccPrivate | ClassFileConstants.AccFinal | ClassFileConstants.AccSynthetic,
+			Flags.PRIVATE | Flags.FINAL | Flags.SYNTHETIC,
 			this,
 			Constant.NotAConstant,
 			this.synthetics[SourceTypeBinding.FIELD_EMUL].size());
@@ -326,7 +328,7 @@ public FieldBinding addSyntheticFieldForInnerclass(ReferenceBinding enclosingTyp
 				TypeConstants.SYNTHETIC_ENCLOSING_INSTANCE_PREFIX,
 				String.valueOf(enclosingType.depth()).toCharArray()),
 			enclosingType,
-			ClassFileConstants.AccDefault | ClassFileConstants.AccFinal | ClassFileConstants.AccSynthetic,
+			0 | Flags.FINAL | Flags.SYNTHETIC,
 			this,
 			Constant.NotAConstant,
 			this.synthetics[SourceTypeBinding.FIELD_EMUL].size());
@@ -379,7 +381,7 @@ public FieldBinding addSyntheticFieldForClassLiteral(TypeBinding targetType, Blo
 				TypeConstants.SYNTHETIC_CLASS,
 				String.valueOf(this.synthetics[SourceTypeBinding.CLASS_LITERAL_EMUL].size()).toCharArray()),
 			blockScope.getJavaLangClass(),
-			ClassFileConstants.AccDefault | ClassFileConstants.AccStatic | ClassFileConstants.AccSynthetic,
+			0 | Flags.STATIC | Flags.SYNTHETIC,
 			this,
 			Constant.NotAConstant,
 			this.synthetics[SourceTypeBinding.CLASS_LITERAL_EMUL].size());
@@ -418,7 +420,7 @@ public FieldBinding addSyntheticFieldForAssert(BlockScope blockScope) {
 		synthField = new SyntheticFieldBinding(
 			TypeConstants.SYNTHETIC_ASSERT_DISABLED,
 			TypeBinding.BOOLEAN,
-			(isInterface() ? ClassFileConstants.AccPublic : ClassFileConstants.AccDefault) | ClassFileConstants.AccStatic | ClassFileConstants.AccSynthetic | ClassFileConstants.AccFinal,
+			(isInterface() ? Flags.PUBLIC : 0) | Flags.STATIC | Flags.SYNTHETIC | Flags.FINAL,
 			this,
 			Constant.NotAConstant,
 			this.synthetics[SourceTypeBinding.FIELD_EMUL].size());
@@ -464,7 +466,7 @@ public FieldBinding addSyntheticFieldForEnumValues() {
 		synthField = new SyntheticFieldBinding(
 			TypeConstants.SYNTHETIC_ENUM_VALUES,
 			this.scope.createArrayType(this,1),
-			ClassFileConstants.AccPrivate | ClassFileConstants.AccStatic | ClassFileConstants.AccSynthetic | ClassFileConstants.AccFinal,
+			Flags.PRIVATE | Flags.STATIC | Flags.SYNTHETIC | Flags.FINAL,
 			this,
 			Constant.NotAConstant,
 			this.synthetics[SourceTypeBinding.FIELD_EMUL].size());
@@ -558,7 +560,7 @@ public SyntheticFieldBinding addSyntheticFieldForSwitchEnum(char[] fieldName, St
 		synthField = new SyntheticFieldBinding(
 			fieldName,
 			this.scope.createArrayType(TypeBinding.INT,1),
-			(isInterface() ? (ClassFileConstants.AccPublic | ClassFileConstants.AccFinal) : ClassFileConstants.AccPrivate | ClassFileConstants.AccVolatile) | ClassFileConstants.AccStatic | ClassFileConstants.AccSynthetic,
+			(isInterface() ? (Flags.PUBLIC | Flags.FINAL) : Flags.PRIVATE | Flags.VOLATILE) | Flags.STATIC | Flags.SYNTHETIC,
 			this,
 			Constant.NotAConstant,
 			this.synthetics[SourceTypeBinding.FIELD_EMUL].size());
@@ -1430,7 +1432,7 @@ public RecordComponentBinding[] components() {
 						smb.parameters[i] = this.components[i].type;
 					}
 					if (this.isVarArgs == true) {
-						smb.modifiers |= ClassFileConstants.AccVarargs;
+						smb.modifiers |= Flags.ACC_VARARGS;
 					}
 				}
 			}
@@ -1972,8 +1974,8 @@ public void generateSyntheticFinalFieldInitialization(CodeStream codeStream) {
 			MethodBinding[] accessors = (MethodBinding[]) this.synthetics[SourceTypeBinding.METHOD_EMUL].get(new String(field.name));
 			if (accessors == null || accessors[0] == null) // not a field for switch enum
 				continue;
-			codeStream.invoke(Opcodes.OPC_invokestatic, accessors[0], null /* default declaringClass */);
-			codeStream.fieldAccess(Opcodes.OPC_putstatic, field, null /* default declaringClass */);
+			codeStream.invoke(ByteCodes.invokestatic, accessors[0], null /* default declaringClass */);
+			codeStream.fieldAccess(ByteCodes.putstatic, field, null /* default declaringClass */);
 		}
 	}
 }

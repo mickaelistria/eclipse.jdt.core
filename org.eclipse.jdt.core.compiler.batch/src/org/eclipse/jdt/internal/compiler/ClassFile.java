@@ -89,7 +89,6 @@ import org.eclipse.jdt.internal.compiler.codegen.AttributeNamesConstants;
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
 import org.eclipse.jdt.internal.compiler.codegen.ConstantPool;
 import org.eclipse.jdt.internal.compiler.codegen.ExceptionLabel;
-import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
 import org.eclipse.jdt.internal.compiler.codegen.StackMapFrame;
 import org.eclipse.jdt.internal.compiler.codegen.StackMapFrameCodeStream;
 import org.eclipse.jdt.internal.compiler.codegen.StackMapFrameCodeStream.ExceptionMarker;
@@ -127,6 +126,9 @@ import org.eclipse.jdt.internal.compiler.problem.ProblemSeverities;
 import org.eclipse.jdt.internal.compiler.problem.ShouldNotImplement;
 import org.eclipse.jdt.internal.compiler.util.Messages;
 import org.eclipse.jdt.internal.compiler.util.Util;
+
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.jvm.ByteCodes;
 
 /**
  * Represents a class file wrapper on bytes, it is aware of its actual
@@ -269,7 +271,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 				MethodBinding method = methodDecl.binding;
 				if (method == null) continue;
 				if (abstractMethodsOnly) {
-					method.modifiers = ClassFileConstants.AccPublic | ClassFileConstants.AccAbstract;
+					method.modifiers = Flags.PUBLIC | Flags.ABSTRACT;
 				}
 				if (method.isConstructor()) {
 					if (typeBinding.isInterface()) continue;
@@ -724,7 +726,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 		int accessFlags = fieldBinding.getAccessFlags();
 		if (this.targetJDK < ClassFileConstants.JDK1_5) {
 			// pre 1.5, synthetic was an attribute, not a modifier
-			accessFlags &= ~ClassFileConstants.AccSynthetic;
+			accessFlags &= ~Flags.SYNTHETIC;
 		}
 		this.contents[this.contentsOffset++] = (byte) (accessFlags >> 8);
 		this.contents[this.contentsOffset++] = (byte) accessFlags;
@@ -794,7 +796,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 
 	private void addMissingAbstractProblemMethod(MethodDeclaration methodDeclaration, MethodBinding methodBinding, CategorizedProblem problem, CompilationResult compilationResult) {
 		// always clear the strictfp/native/abstract bit for a problem method
-		generateMethodInfoHeader(methodBinding, methodBinding.modifiers & ~(ClassFileConstants.AccStrictfp | ClassFileConstants.AccNative | ClassFileConstants.AccAbstract));
+		generateMethodInfoHeader(methodBinding, methodBinding.modifiers & ~(Flags.STRICTFP | Flags.NATIVE | Flags.ABSTRACT));
 		int methodAttributeOffset = this.contentsOffset;
 		int attributeNumber = generateMethodInfoAttributes(methodBinding);
 
@@ -898,7 +900,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 		}
 
 		// always clear the strictfp/native/abstract bit for a problem method
-		generateMethodInfoHeader(methodBinding, methodBinding.modifiers & ~(ClassFileConstants.AccStrictfp | ClassFileConstants.AccNative | ClassFileConstants.AccAbstract));
+		generateMethodInfoHeader(methodBinding, methodBinding.modifiers & ~(Flags.STRICTFP | Flags.NATIVE | Flags.ABSTRACT));
 		int methodAttributeOffset = this.contentsOffset;
 		int attributesNumber = generateMethodInfoAttributes(methodBinding);
 
@@ -981,7 +983,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 			method.abort(ProblemSeverities.AbortType, null);
 		}
 		// always clear the strictfp/native/abstract bit for a problem method
-		generateMethodInfoHeader(methodBinding, methodBinding.modifiers & ~(ClassFileConstants.AccStrictfp | ClassFileConstants.AccNative | ClassFileConstants.AccAbstract));
+		generateMethodInfoHeader(methodBinding, methodBinding.modifiers & ~(Flags.STRICTFP | Flags.NATIVE | Flags.ABSTRACT));
 		int methodAttributeOffset = this.contentsOffset;
 		int attributesNumber = generateMethodInfoAttributes(methodBinding);
 
@@ -2995,7 +2997,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 				this.constantPool.literalIndexForModule(binding.moduleName);
 		this.contents[localContentsOffset++] = (byte) (moduleNameIndex >> 8);
 		this.contents[localContentsOffset++] = (byte) moduleNameIndex;
-		int flags = module.modifiers & ~(ClassFileConstants.AccModule);
+		int flags = module.modifiers & ~(Flags.ACC_MODULE);
 		this.contents[localContentsOffset++] = (byte) (flags >> 8);
 		this.contents[localContentsOffset++] = (byte) flags;
 		String moduleVersion = module.getModuleVersion();
@@ -3043,7 +3045,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 			int javabase_index = this.constantPool.literalIndexForModule(javaBaseBinding.moduleName);
 			this.contents[localContentsOffset++] = (byte) (javabase_index >> 8);
 			this.contents[localContentsOffset++] = (byte) (javabase_index);
-			flags = ClassFileConstants.AccMandated;
+			flags = Flags.MANDATED;
 			this.contents[localContentsOffset++] = (byte) (flags >> 8);
 			this.contents[localContentsOffset++] = (byte) flags;
 			int required_version = 0;
@@ -3586,9 +3588,9 @@ public class ClassFile implements TypeConstants, TypeIds {
 			if (innerClass.isAnonymousType()) {
 				ReferenceBinding superClass = innerClass.superclass();
 				if (superClass == null || !(superClass.isEnum() && superClass.isSealed()))
-					accessFlags &= ~ClassFileConstants.AccFinal;
+					accessFlags &= ~Flags.FINAL;
 			} else if (innerClass.isMemberType() && innerClass.isInterface()) {
-				accessFlags |= ClassFileConstants.AccStatic; // implicitely static
+				accessFlags |= Flags.STATIC; // implicitely static
 			}
 			this.contents[localContentsOffset++] = (byte) (accessFlags >> 8);
 			this.contents[localContentsOffset++] = (byte) accessFlags;
@@ -4427,13 +4429,13 @@ public class ClassFile implements TypeConstants, TypeIds {
 		if (this.targetJDK < ClassFileConstants.JDK1_5) {
 			// pre 1.5, synthetic is an attribute, not a modifier
 			// pre 1.5, varargs is an attribute, not a modifier (-target jsr14 mode)
-			accessFlags &= ~(ClassFileConstants.AccSynthetic | ClassFileConstants.AccVarargs);
+			accessFlags &= ~(Flags.SYNTHETIC | Flags.ACC_VARARGS);
 		}
 		if ((methodBinding.tagBits & TagBits.ClearPrivateModifier) != 0) {
-			accessFlags &= ~ClassFileConstants.AccPrivate;
+			accessFlags &= ~Flags.PRIVATE;
 		}
 		if (this.targetJDK >= ClassFileConstants.JDK17) {
-			accessFlags &= ~(ClassFileConstants.AccStrictfp);
+			accessFlags &= ~(Flags.STRICTFP);
 		}
 		this.contents[this.contentsOffset++] = (byte) (accessFlags >> 8);
 		this.contents[this.contentsOffset++] = (byte) accessFlags;
@@ -4488,8 +4490,8 @@ public class ClassFile implements TypeConstants, TypeIds {
 		if (this.contentsOffset + 10 >= this.contents.length) {
 			resizeContents(10);
 		}
-		this.contents[this.contentsOffset++] = (byte) ((ClassFileConstants.AccDefault | ClassFileConstants.AccStatic) >> 8);
-		this.contents[this.contentsOffset++] = (byte) (ClassFileConstants.AccDefault | ClassFileConstants.AccStatic);
+		this.contents[this.contentsOffset++] = (byte) ((0 | Flags.STATIC) >> 8);
+		this.contents[this.contentsOffset++] = (byte) (0 | Flags.STATIC);
 		int nameIndex = this.constantPool.literalIndex(ConstantPool.Clinit);
 		this.contents[this.contentsOffset++] = (byte) (nameIndex >> 8);
 		this.contents[this.contentsOffset++] = (byte) nameIndex;
@@ -4987,11 +4989,11 @@ public class ClassFile implements TypeConstants, TypeIds {
 
 		if (declaringClass.isEnum()) {
 			if (isConstructor) { // insert String name,int ordinal
-				length = writeArgumentName(ConstantPool.EnumName, ClassFileConstants.AccSynthetic, length);
-				length = writeArgumentName(ConstantPool.EnumOrdinal, ClassFileConstants.AccSynthetic, length);
+				length = writeArgumentName(ConstantPool.EnumName, Flags.SYNTHETIC, length);
+				length = writeArgumentName(ConstantPool.EnumOrdinal, Flags.SYNTHETIC, length);
 			} else if (binding instanceof SyntheticMethodBinding
 					&& CharOperation.equals(ConstantPool.ValueOf, binding.selector)) { // insert String name
-				length = writeArgumentName(ConstantPool.Name, ClassFileConstants.AccMandated, length);
+				length = writeArgumentName(ConstantPool.Name, Flags.MANDATED, length);
 				targetParameters =  Binding.NO_PARAMETERS; // Override "unknown" synthetics below
 			}
 		}
@@ -5011,11 +5013,11 @@ public class ClassFile implements TypeConstants, TypeIds {
 					// isn't the first. The practical relevance of this is questionable, since the constructor call will be
 					// generated by the same constructor.
 					boolean couldForwardToMandated = anonymousWithNestedSuper ? declaringClass.superclass().enclosingType().equals(syntheticArgumentTypes[i]) : true;
-					int modifier = couldForwardToMandated && isImplicitlyDeclared ? ClassFileConstants.AccMandated : ClassFileConstants.AccSynthetic;
+					int modifier = couldForwardToMandated && isImplicitlyDeclared ? Flags.MANDATED : Flags.SYNTHETIC;
 					char[] name = CharOperation.concat(
 							TypeConstants.SYNTHETIC_ENCLOSING_INSTANCE_PREFIX,
 							String.valueOf(i).toCharArray()); // cannot use depth, can be identical
-					length = writeArgumentName(name, modifier | ClassFileConstants.AccFinal, length);
+					length = writeArgumentName(name, modifier | Flags.FINAL, length);
 				}
 			}
 			if (binding instanceof SyntheticMethodBinding) {
@@ -5033,7 +5035,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					Argument argument = arguments[i];
 					length = writeArgumentName(argument.name, argument.binding.modifiers, length);
 				} else {
-					length = writeArgumentName(null, ClassFileConstants.AccSynthetic, length);
+					length = writeArgumentName(null, Flags.SYNTHETIC, length);
 				}
 			}
 		}
@@ -5041,12 +5043,12 @@ public class ClassFile implements TypeConstants, TypeIds {
 			SyntheticArgumentBinding[] syntheticOuterArguments = declaringClass.syntheticOuterLocalVariables();
 			int count = syntheticOuterArguments == null ? 0 : syntheticOuterArguments.length;
 			for (int i = 0; i < count; i++) {
-				length = writeArgumentName(syntheticOuterArguments[i].name, syntheticOuterArguments[i].modifiers  | ClassFileConstants.AccSynthetic, length);
+				length = writeArgumentName(syntheticOuterArguments[i].name, syntheticOuterArguments[i].modifiers  | Flags.SYNTHETIC, length);
 			}
 			// move the extra padding arguments of the synthetic constructor invocation to the end
 			for (int i = targetParameters.length, extraLength = binding.parameters.length; i < extraLength; i++) {
 				TypeBinding parameter = binding.parameters[i];
-				length = writeArgumentName(parameter.constantPoolName(), ClassFileConstants.AccSynthetic, length);
+				length = writeArgumentName(parameter.constantPoolName(), Flags.SYNTHETIC, length);
 			}
 		}
 
@@ -5083,7 +5085,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 		int parameterNameIndex = name == null ? 0 : this.constantPool.literalIndex(name);
 		this.contents[this.contentsOffset++] = (byte) (parameterNameIndex >> 8);
 		this.contents[this.contentsOffset++] = (byte) parameterNameIndex;
-		int flags = modifiers & (ClassFileConstants.AccFinal | ClassFileConstants.AccSynthetic | ClassFileConstants.AccMandated);
+		int flags = modifiers & (Flags.FINAL | Flags.SYNTHETIC | Flags.MANDATED);
 		this.contents[this.contentsOffset++] = (byte) (flags >> 8);
 		this.contents[this.contentsOffset++] = (byte) flags;
 		return oldLength + 1;
@@ -5885,10 +5887,11 @@ public class ClassFile implements TypeConstants, TypeIds {
 
 	private void initializeHeader(ClassFile parentClassFile, int accessFlags) {
 		// generate the magic numbers inside the header
-		this.header[this.headerOffset++] = (byte) (0xCAFEBABEL >> 24);
-		this.header[this.headerOffset++] = (byte) (0xCAFEBABEL >> 16);
-		this.header[this.headerOffset++] = (byte) (0xCAFEBABEL >> 8);
-		this.header[this.headerOffset++] = (byte) (0xCAFEBABEL >> 0);
+		long magicAsLong = com.sun.tools.javac.jvm.ClassFile.JAVA_MAGIC;
+		this.header[this.headerOffset++] = (byte) (magicAsLong >> 24);
+		this.header[this.headerOffset++] = (byte) (magicAsLong >> 16);
+		this.header[this.headerOffset++] = (byte) (magicAsLong >> 8);
+		this.header[this.headerOffset++] = (byte) (magicAsLong >> 0);
 
 		long targetVersion = this.targetJDK;
 		this.header[this.headerOffset++] = (byte) (targetVersion >> 8); // minor high
@@ -5911,31 +5914,31 @@ public class ClassFile implements TypeConstants, TypeIds {
 		// Modifier manipulations for classfile
 		int accessFlags = aType.getAccessFlags();
 		if (aType.isPrivate()) { // rewrite private to non-public
-			accessFlags &= ~ClassFileConstants.AccPublic;
+			accessFlags &= ~Flags.PUBLIC;
 		}
 		if (aType.isProtected()) { // rewrite protected into public
-			accessFlags |= ClassFileConstants.AccPublic;
+			accessFlags |= Flags.PUBLIC;
 		}
 		// clear all bits that are illegal for a class or an interface
 		accessFlags
 			&= ~(
-				ClassFileConstants.AccStrictfp
-					| ClassFileConstants.AccProtected
-					| ClassFileConstants.AccPrivate
-					| ClassFileConstants.AccStatic
-					| ClassFileConstants.AccSynchronized
-					| ClassFileConstants.AccNative);
+				Flags.STRICTFP
+					| Flags.PROTECTED
+					| Flags.PRIVATE
+					| Flags.STATIC
+					| Flags.SYNCHRONIZED
+					| Flags.NATIVE);
 
 		// set the AccSuper flag (has to be done after clearing AccSynchronized - since same value)
 		if (!aType.isInterface()) { // class or enum
-			accessFlags |= ClassFileConstants.AccSuper;
+			accessFlags |= Flags.ACC_SUPER;
 		}
 		if (aType.isAnonymousType()) {
 			ReferenceBinding superClass = aType.superclass;
 			if (superClass == null || !(superClass.isEnum() && superClass.isSealed()))
-			accessFlags &= ~ClassFileConstants.AccFinal;
+			accessFlags &= ~Flags.FINAL;
 		}
-		int finalAbstract = ClassFileConstants.AccFinal | ClassFileConstants.AccAbstract;
+		int finalAbstract = Flags.FINAL | Flags.ABSTRACT;
 		if ((accessFlags & finalAbstract) == finalAbstract) {
 			accessFlags &= ~finalAbstract;
 		}
@@ -5989,7 +5992,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 	}
 
 	public void initializeForModule(ModuleBinding module) {
-		initializeHeader(null, ClassFileConstants.AccModule);
+		initializeHeader(null, Flags.ACC_MODULE);
 		int classNameIndex = this.constantPool.literalIndexForType(TypeConstants.MODULE_INFO_NAME);
 		this.contents[this.contentsOffset++] = (byte) (classNameIndex >> 8);
 		this.contents[this.contentsOffset++] = (byte) classNameIndex;
@@ -6702,148 +6705,148 @@ public class ClassFile implements TypeConstants, TypeIds {
 					currentFramePosition = Integer.MAX_VALUE;
 				}
 			}
-			byte opcode = (byte) u1At(bytecodes, 0, pc);
+			int opcode = Byte.toUnsignedInt((byte) u1At(bytecodes, 0, pc));
 			switch (opcode) {
-				case Opcodes.OPC_nop:
+				case ByteCodes.nop:
 					pc++;
 					break;
-				case Opcodes.OPC_aconst_null:
+				case ByteCodes.aconst_null:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.NULL));
 					pc++;
 					break;
-				case Opcodes.OPC_iconst_m1:
-				case Opcodes.OPC_iconst_0:
-				case Opcodes.OPC_iconst_1:
-				case Opcodes.OPC_iconst_2:
-				case Opcodes.OPC_iconst_3:
-				case Opcodes.OPC_iconst_4:
-				case Opcodes.OPC_iconst_5:
+				case ByteCodes.iconst_m1:
+				case ByteCodes.iconst_0:
+				case ByteCodes.iconst_1:
+				case ByteCodes.iconst_2:
+				case ByteCodes.iconst_3:
+				case ByteCodes.iconst_4:
+				case ByteCodes.iconst_5:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 					pc++;
 					break;
-				case Opcodes.OPC_lconst_0:
-				case Opcodes.OPC_lconst_1:
+				case ByteCodes.lconst_0:
+				case ByteCodes.lconst_1:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.LONG));
 					pc++;
 					break;
-				case Opcodes.OPC_fconst_0:
-				case Opcodes.OPC_fconst_1:
-				case Opcodes.OPC_fconst_2:
+				case ByteCodes.fconst_0:
+				case ByteCodes.fconst_1:
+				case ByteCodes.fconst_2:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.FLOAT));
 					pc++;
 					break;
-				case Opcodes.OPC_dconst_0:
-				case Opcodes.OPC_dconst_1:
+				case ByteCodes.dconst_0:
+				case ByteCodes.dconst_1:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.DOUBLE));
 					pc++;
 					break;
-				case Opcodes.OPC_bipush:
+				case ByteCodes.bipush:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.BYTE));
 					pc += 2;
 					break;
-				case Opcodes.OPC_sipush:
+				case ByteCodes.sipush:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.SHORT));
 					pc += 3;
 					break;
-				case Opcodes.OPC_ldc:
+				case ByteCodes.ldc1:
 					index = u1At(bytecodes, 1, pc);
 					switch (u1At(poolContents, 0, constantPoolOffsets[index])) {
-						case ClassFileConstants.StringTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_String:
 							frame
 									.addStackItem(new VerificationTypeInfo(scope.getJavaLangString()));
 							break;
-						case ClassFileConstants.IntegerTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Integer:
 							frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 							break;
-						case ClassFileConstants.FloatTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Float:
 							frame.addStackItem(new VerificationTypeInfo(TypeBinding.FLOAT));
 							break;
-						case ClassFileConstants.ClassTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Class:
 							frame.addStackItem(new VerificationTypeInfo(scope.getJavaLangClass()));
 					}
 					pc += 2;
 					break;
-				case Opcodes.OPC_ldc_w:
+				case ByteCodes.ldc2:
 					index = u2At(bytecodes, 1, pc);
 					switch (u1At(poolContents, 0, constantPoolOffsets[index])) {
-						case ClassFileConstants.StringTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_String:
 							frame
 									.addStackItem(new VerificationTypeInfo(scope.getJavaLangString()));
 							break;
-						case ClassFileConstants.IntegerTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Integer:
 							frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 							break;
-						case ClassFileConstants.FloatTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Float:
 							frame.addStackItem(new VerificationTypeInfo(TypeBinding.FLOAT));
 							break;
-						case ClassFileConstants.ClassTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Class :
 							frame.addStackItem(new VerificationTypeInfo(scope.getJavaLangClass()));
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_ldc2_w:
+				case ByteCodes.ldc2w:
 					index = u2At(bytecodes, 1, pc);
 					switch (u1At(poolContents, 0, constantPoolOffsets[index])) {
-						case ClassFileConstants.DoubleTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Double:
 							frame.addStackItem(new VerificationTypeInfo(TypeBinding.DOUBLE));
 							break;
-						case ClassFileConstants.LongTag:
+						case com.sun.tools.javac.jvm.ClassFile.CONSTANT_Long:
 							frame.addStackItem(new VerificationTypeInfo(TypeBinding.LONG));
 							break;
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_iload:
+				case ByteCodes.iload:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 					pc += 2;
 					break;
-				case Opcodes.OPC_lload:
+				case ByteCodes.lload:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.LONG));
 					pc += 2;
 					break;
-				case Opcodes.OPC_fload:
+				case ByteCodes.fload:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.FLOAT));
 					pc += 2;
 					break;
-				case Opcodes.OPC_dload:
+				case ByteCodes.dload:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.DOUBLE));
 					pc += 2;
 					break;
-				case Opcodes.OPC_aload:
+				case ByteCodes.aload:
 					index = u1At(bytecodes, 1, pc);
 					VerificationTypeInfo localsN = retrieveLocal(currentPC, index);
 					frame.addStackItem(localsN);
 					pc += 2;
 					break;
-				case Opcodes.OPC_iload_0:
-				case Opcodes.OPC_iload_1:
-				case Opcodes.OPC_iload_2:
-				case Opcodes.OPC_iload_3:
+				case ByteCodes.iload_0:
+				case ByteCodes.iload_1:
+				case ByteCodes.iload_2:
+				case ByteCodes.iload_3:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 					pc++;
 					break;
-				case Opcodes.OPC_lload_0:
-				case Opcodes.OPC_lload_1:
-				case Opcodes.OPC_lload_2:
-				case Opcodes.OPC_lload_3:
+				case ByteCodes.lload_0:
+				case ByteCodes.lload_1:
+				case ByteCodes.lload_2:
+				case ByteCodes.lload_3:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.LONG));
 					pc++;
 					break;
-				case Opcodes.OPC_fload_0:
-				case Opcodes.OPC_fload_1:
-				case Opcodes.OPC_fload_2:
-				case Opcodes.OPC_fload_3:
+				case ByteCodes.fload_0:
+				case ByteCodes.fload_1:
+				case ByteCodes.fload_2:
+				case ByteCodes.fload_3:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.FLOAT));
 					pc++;
 					break;
-				case Opcodes.OPC_dload_0:
-				case Opcodes.OPC_dload_1:
-				case Opcodes.OPC_dload_2:
-				case Opcodes.OPC_dload_3:
+				case ByteCodes.dload_0:
+				case ByteCodes.dload_1:
+				case ByteCodes.dload_2:
+				case ByteCodes.dload_3:
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.DOUBLE));
 					pc++;
 					break;
-				case Opcodes.OPC_aload_0:
+				case ByteCodes.aload_0:
 					VerificationTypeInfo locals0 = frame.locals[0];
 					if (locals0 == null || locals0.tag != VerificationTypeInfo.ITEM_UNINITIALIZED_THIS) {
 						// special case to handle uninitialized object
@@ -6852,116 +6855,116 @@ public class ClassFile implements TypeConstants, TypeIds {
 					frame.addStackItem(locals0);
 					pc++;
 					break;
-				case Opcodes.OPC_aload_1:
+				case ByteCodes.aload_1:
 					VerificationTypeInfo locals1 = retrieveLocal(currentPC, 1);
 					frame.addStackItem(locals1);
 					pc++;
 					break;
-				case Opcodes.OPC_aload_2:
+				case ByteCodes.aload_2:
 					VerificationTypeInfo locals2 = retrieveLocal(currentPC, 2);
 					frame.addStackItem(locals2);
 					pc++;
 					break;
-				case Opcodes.OPC_aload_3:
+				case ByteCodes.aload_3:
 					VerificationTypeInfo locals3 = retrieveLocal(currentPC, 3);
 					frame.addStackItem(locals3);
 					pc++;
 					break;
-				case Opcodes.OPC_iaload:
+				case ByteCodes.iaload:
 					frame.numberOfStackItems -=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 					pc++;
 					break;
-				case Opcodes.OPC_laload:
+				case ByteCodes.laload:
 					frame.numberOfStackItems -=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.LONG));
 					pc++;
 					break;
-				case Opcodes.OPC_faload:
+				case ByteCodes.faload:
 					frame.numberOfStackItems -=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.FLOAT));
 					pc++;
 					break;
-				case Opcodes.OPC_daload:
+				case ByteCodes.daload:
 					frame.numberOfStackItems -=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.DOUBLE));
 					pc++;
 					break;
-				case Opcodes.OPC_aaload:
+				case ByteCodes.aaload:
 					frame.numberOfStackItems--;
 					frame.replaceWithElementType();
 					pc++;
 					break;
-				case Opcodes.OPC_baload:
+				case ByteCodes.baload:
 					frame.numberOfStackItems -=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.BYTE));
 					pc++;
 					break;
-				case Opcodes.OPC_caload:
+				case ByteCodes.caload:
 					frame.numberOfStackItems -=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.CHAR));
 					pc++;
 					break;
-				case Opcodes.OPC_saload:
+				case ByteCodes.saload:
 					frame.numberOfStackItems -=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.SHORT));
 					pc++;
 					break;
-				case Opcodes.OPC_istore:
-				case Opcodes.OPC_lstore:
-				case Opcodes.OPC_fstore:
-				case Opcodes.OPC_dstore:
+				case ByteCodes.istore:
+				case ByteCodes.lstore:
+				case ByteCodes.fstore:
+				case ByteCodes.dstore:
 					frame.numberOfStackItems--;
 					pc += 2;
 					break;
-				case Opcodes.OPC_astore:
+				case ByteCodes.astore:
 					index = u1At(bytecodes, 1, pc);
 					frame.numberOfStackItems--;
 					pc += 2;
 					break;
-				case Opcodes.OPC_astore_0:
+				case ByteCodes.astore_0:
 					frame.locals[0] = frame.stackItems[frame.numberOfStackItems - 1];
 					frame.numberOfStackItems--;
 					pc++;
 					break;
-				case Opcodes.OPC_astore_1:
-				case Opcodes.OPC_astore_2:
-				case Opcodes.OPC_astore_3:
-				case Opcodes.OPC_istore_0:
-				case Opcodes.OPC_istore_1:
-				case Opcodes.OPC_istore_2:
-				case Opcodes.OPC_istore_3:
-				case Opcodes.OPC_lstore_0:
-				case Opcodes.OPC_lstore_1:
-				case Opcodes.OPC_lstore_2:
-				case Opcodes.OPC_lstore_3:
-				case Opcodes.OPC_fstore_0:
-				case Opcodes.OPC_fstore_1:
-				case Opcodes.OPC_fstore_2:
-				case Opcodes.OPC_fstore_3:
-				case Opcodes.OPC_dstore_0:
-				case Opcodes.OPC_dstore_1:
-				case Opcodes.OPC_dstore_2:
-				case Opcodes.OPC_dstore_3:
+				case ByteCodes.astore_1:
+				case ByteCodes.astore_2:
+				case ByteCodes.astore_3:
+				case ByteCodes.istore_0:
+				case ByteCodes.istore_1:
+				case ByteCodes.istore_2:
+				case ByteCodes.istore_3:
+				case ByteCodes.lstore_0:
+				case ByteCodes.lstore_1:
+				case ByteCodes.lstore_2:
+				case ByteCodes.lstore_3:
+				case ByteCodes.fstore_0:
+				case ByteCodes.fstore_1:
+				case ByteCodes.fstore_2:
+				case ByteCodes.fstore_3:
+				case ByteCodes.dstore_0:
+				case ByteCodes.dstore_1:
+				case ByteCodes.dstore_2:
+				case ByteCodes.dstore_3:
 					frame.numberOfStackItems--;
 					pc++;
 					break;
-				case Opcodes.OPC_iastore:
-				case Opcodes.OPC_lastore:
-				case Opcodes.OPC_fastore:
-				case Opcodes.OPC_dastore:
-				case Opcodes.OPC_aastore:
-				case Opcodes.OPC_bastore:
-				case Opcodes.OPC_castore:
-				case Opcodes.OPC_sastore:
+				case ByteCodes.iastore:
+				case ByteCodes.lastore:
+				case ByteCodes.fastore:
+				case ByteCodes.dastore:
+				case ByteCodes.aastore:
+				case ByteCodes.bastore:
+				case ByteCodes.castore:
+				case ByteCodes.sastore:
 					frame.numberOfStackItems-=3;
 					pc++;
 					break;
-				case Opcodes.OPC_pop:
+				case ByteCodes.pop:
 					frame.numberOfStackItems--;
 					pc++;
 					break;
-				case Opcodes.OPC_pop2:
+				case ByteCodes.pop2:
 					int numberOfStackItems = frame.numberOfStackItems;
 					switch(frame.stackItems[numberOfStackItems - 1].id()) {
 						case TypeIds.T_long :
@@ -6973,11 +6976,11 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc++;
 					break;
-				case Opcodes.OPC_dup:
+				case ByteCodes.dup:
 					frame.addStackItem(frame.stackItems[frame.numberOfStackItems - 1]);
 					pc++;
 					break;
-				case Opcodes.OPC_dup_x1:
+				case ByteCodes.dup_x1:
 					VerificationTypeInfo info = frame.stackItems[frame.numberOfStackItems - 1];
 					frame.numberOfStackItems--;
 					VerificationTypeInfo info2 = frame.stackItems[frame.numberOfStackItems - 1];
@@ -6987,7 +6990,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					frame.addStackItem(info);
 					pc++;
 					break;
-				case Opcodes.OPC_dup_x2:
+				case ByteCodes.dup_x2:
 					info = frame.stackItems[frame.numberOfStackItems - 1];
 					frame.numberOfStackItems--;
 					info2 = frame.stackItems[frame.numberOfStackItems - 1];
@@ -7010,7 +7013,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc++;
 					break;
-				case Opcodes.OPC_dup2:
+				case ByteCodes.dup2:
 					info = frame.stackItems[frame.numberOfStackItems - 1];
 					frame.numberOfStackItems--;
 					switch(info.id()) {
@@ -7029,7 +7032,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc++;
 					break;
-				case Opcodes.OPC_dup2_x1:
+				case ByteCodes.dup2_x1:
 					info = frame.stackItems[frame.numberOfStackItems - 1];
 					frame.numberOfStackItems--;
 					info2 = frame.stackItems[frame.numberOfStackItems - 1];
@@ -7052,7 +7055,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc++;
 					break;
-				case Opcodes.OPC_dup2_x2:
+				case ByteCodes.dup2_x2:
 					numberOfStackItems = frame.numberOfStackItems;
 					info = frame.stackItems[numberOfStackItems - 1];
 					frame.numberOfStackItems--;
@@ -7109,7 +7112,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc++;
 					break;
-				case Opcodes.OPC_swap:
+				case ByteCodes.swap:
 					numberOfStackItems = frame.numberOfStackItems;
 					info = frame.stackItems[numberOfStackItems - 1];
 					info2 = frame.stackItems[numberOfStackItems - 2];
@@ -7117,150 +7120,150 @@ public class ClassFile implements TypeConstants, TypeIds {
 					frame.stackItems[numberOfStackItems - 2] = info;
 					pc++;
 					break;
-				case Opcodes.OPC_iadd:
-				case Opcodes.OPC_ladd:
-				case Opcodes.OPC_fadd:
-				case Opcodes.OPC_dadd:
-				case Opcodes.OPC_isub:
-				case Opcodes.OPC_lsub:
-				case Opcodes.OPC_fsub:
-				case Opcodes.OPC_dsub:
-				case Opcodes.OPC_imul:
-				case Opcodes.OPC_lmul:
-				case Opcodes.OPC_fmul:
-				case Opcodes.OPC_dmul:
-				case Opcodes.OPC_idiv:
-				case Opcodes.OPC_ldiv:
-				case Opcodes.OPC_fdiv:
-				case Opcodes.OPC_ddiv:
-				case Opcodes.OPC_irem:
-				case Opcodes.OPC_lrem:
-				case Opcodes.OPC_frem:
-				case Opcodes.OPC_drem:
-				case Opcodes.OPC_ishl:
-				case Opcodes.OPC_lshl:
-				case Opcodes.OPC_ishr:
-				case Opcodes.OPC_lshr:
-				case Opcodes.OPC_iushr:
-				case Opcodes.OPC_lushr:
-				case Opcodes.OPC_iand:
-				case Opcodes.OPC_land:
-				case Opcodes.OPC_ior:
-				case Opcodes.OPC_lor:
-				case Opcodes.OPC_ixor:
-				case Opcodes.OPC_lxor:
+				case ByteCodes.iadd:
+				case ByteCodes.ladd:
+				case ByteCodes.fadd:
+				case ByteCodes.dadd:
+				case ByteCodes.isub:
+				case ByteCodes.lsub:
+				case ByteCodes.fsub:
+				case ByteCodes.dsub:
+				case ByteCodes.imul:
+				case ByteCodes.lmul:
+				case ByteCodes.fmul:
+				case ByteCodes.dmul:
+				case ByteCodes.idiv:
+				case ByteCodes.ldiv:
+				case ByteCodes.fdiv:
+				case ByteCodes.ddiv:
+				case ByteCodes.imod:
+				case ByteCodes.lmod:
+				case ByteCodes.fmod:
+				case ByteCodes.dmod:
+				case ByteCodes.ishl:
+				case ByteCodes.lshl:
+				case ByteCodes.ishr:
+				case ByteCodes.lshr:
+				case ByteCodes.iushr:
+				case ByteCodes.lushr:
+				case ByteCodes.iand:
+				case ByteCodes.land:
+				case ByteCodes.ior:
+				case ByteCodes.lor:
+				case ByteCodes.ixor:
+				case ByteCodes.lxor:
 					frame.numberOfStackItems--;
 					pc++;
 					break;
-				case Opcodes.OPC_ineg:
-				case Opcodes.OPC_lneg:
-				case Opcodes.OPC_fneg:
-				case Opcodes.OPC_dneg:
+				case ByteCodes.ineg:
+				case ByteCodes.lneg:
+				case ByteCodes.fneg:
+				case ByteCodes.dneg:
 					pc++;
 					break;
-				case Opcodes.OPC_iinc:
+				case ByteCodes.iinc:
 					pc += 3;
 					break;
-				case Opcodes.OPC_i2l:
+				case ByteCodes.i2l:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.LONG);
 					pc++;
 					break;
-				case Opcodes.OPC_i2f:
+				case ByteCodes.i2f:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.FLOAT);
 					pc++;
 					break;
-				case Opcodes.OPC_i2d:
+				case ByteCodes.i2d:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.DOUBLE);
 					pc++;
 					break;
-				case Opcodes.OPC_l2i:
+				case ByteCodes.l2i:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.INT);
 					pc++;
 					break;
-				case Opcodes.OPC_l2f:
+				case ByteCodes.l2f:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.FLOAT);
 					pc++;
 					break;
-				case Opcodes.OPC_l2d:
+				case ByteCodes.l2d:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.DOUBLE);
 					pc++;
 					break;
-				case Opcodes.OPC_f2i:
+				case ByteCodes.f2i:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.INT);
 					pc++;
 					break;
-				case Opcodes.OPC_f2l:
+				case ByteCodes.f2l:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.LONG);
 					pc++;
 					break;
-				case Opcodes.OPC_f2d:
+				case ByteCodes.f2d:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.DOUBLE);
 					pc++;
 					break;
-				case Opcodes.OPC_d2i:
+				case ByteCodes.d2i:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.INT);
 					pc++;
 					break;
-				case Opcodes.OPC_d2l:
+				case ByteCodes.d2l:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.LONG);
 					pc++;
 					break;
-				case Opcodes.OPC_d2f:
+				case ByteCodes.d2f:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.FLOAT);
 					pc++;
 					break;
-				case Opcodes.OPC_i2b:
+				case ByteCodes.int2byte:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.BYTE);
 					pc++;
 					break;
-				case Opcodes.OPC_i2c:
+				case ByteCodes.int2char:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.CHAR);
 					pc++;
 					break;
-				case Opcodes.OPC_i2s:
+				case ByteCodes.int2short:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.SHORT);
 					pc++;
 					break;
-				case Opcodes.OPC_lcmp:
-				case Opcodes.OPC_fcmpl:
-				case Opcodes.OPC_fcmpg:
-				case Opcodes.OPC_dcmpl:
-				case Opcodes.OPC_dcmpg:
+				case ByteCodes.lcmp:
+				case ByteCodes.fcmpl:
+				case ByteCodes.fcmpg:
+				case ByteCodes.dcmpl:
+				case ByteCodes.dcmpg:
 					frame.numberOfStackItems-=2;
 					frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 					pc++;
 					break;
-				case Opcodes.OPC_ifeq:
-				case Opcodes.OPC_ifne:
-				case Opcodes.OPC_iflt:
-				case Opcodes.OPC_ifge:
-				case Opcodes.OPC_ifgt:
-				case Opcodes.OPC_ifle:
+				case ByteCodes.ifeq:
+				case ByteCodes.ifne:
+				case ByteCodes.iflt:
+				case ByteCodes.ifge:
+				case ByteCodes.ifgt:
+				case ByteCodes.ifle:
 					frame.numberOfStackItems--;
 					int jumpPC = currentPC + i2At(bytecodes, 1, pc);
 					addRealJumpTarget(realJumpTarget, jumpPC, frames, createNewFrame(jumpPC, frame, isClinit, methodBinding), scope);
 					pc += 3;
 					break;
-				case Opcodes.OPC_if_icmpeq:
-				case Opcodes.OPC_if_icmpne:
-				case Opcodes.OPC_if_icmplt:
-				case Opcodes.OPC_if_icmpge:
-				case Opcodes.OPC_if_icmpgt:
-				case Opcodes.OPC_if_icmple:
-				case Opcodes.OPC_if_acmpeq:
-				case Opcodes.OPC_if_acmpne:
+				case ByteCodes.if_icmpeq:
+				case ByteCodes.if_icmpne:
+				case ByteCodes.if_icmplt:
+				case ByteCodes.if_icmpge:
+				case ByteCodes.if_icmpgt:
+				case ByteCodes.if_icmple:
+				case ByteCodes.if_acmpeq:
+				case ByteCodes.if_acmpne:
 					frame.numberOfStackItems -= 2;
 					jumpPC = currentPC + i2At(bytecodes, 1, pc);
 					addRealJumpTarget(realJumpTarget, jumpPC, frames, createNewFrame(jumpPC, frame, isClinit, methodBinding), scope);
 					pc += 3;
 					break;
-				case Opcodes.OPC_goto:
+				case ByteCodes.goto_:
 					jumpPC = currentPC + i2At(bytecodes, 1, pc);
 					addRealJumpTarget(realJumpTarget, jumpPC, frames, createNewFrame(jumpPC, frame, isClinit, methodBinding), scope);
 					pc += 3;
 					addRealJumpTarget(realJumpTarget, pc - codeOffset);
 					break;
-				case Opcodes.OPC_tableswitch:
+				case ByteCodes.tableswitch:
 					frame.numberOfStackItems--;
 					pc++;
 					while (((pc - codeOffset) & 0x03) != 0) {
@@ -7282,7 +7285,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 						pc += 4;
 					}
 					break;
-				case Opcodes.OPC_lookupswitch:
+				case ByteCodes.lookupswitch:
 					frame.numberOfStackItems--;
 					pc++;
 					while (((pc - codeOffset) & 0x03) != 0) {
@@ -7301,20 +7304,20 @@ public class ClassFile implements TypeConstants, TypeIds {
 						pc += 4;
 					}
 					break;
-				case Opcodes.OPC_ireturn:
-				case Opcodes.OPC_lreturn:
-				case Opcodes.OPC_freturn:
-				case Opcodes.OPC_dreturn:
-				case Opcodes.OPC_areturn:
+				case ByteCodes.ireturn:
+				case ByteCodes.lreturn:
+				case ByteCodes.freturn:
+				case ByteCodes.dreturn:
+				case ByteCodes.areturn:
 					frame.numberOfStackItems--;
 					pc++;
 					addRealJumpTarget(realJumpTarget, pc - codeOffset);
 					break;
-				case Opcodes.OPC_return:
+				case ByteCodes.return_:
 					pc++;
 					addRealJumpTarget(realJumpTarget, pc - codeOffset);
 					break;
-				case Opcodes.OPC_getstatic:
+				case ByteCodes.getstatic:
 					index = u2At(bytecodes, 1, pc);
 					int nameAndTypeIndex = u2At(poolContents, 3,
 							constantPoolOffsets[index]);
@@ -7330,11 +7333,11 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_putstatic:
+				case ByteCodes.putstatic:
 					frame.numberOfStackItems--;
 					pc += 3;
 					break;
-				case Opcodes.OPC_getfield:
+				case ByteCodes.getfield:
 					index = u2At(bytecodes, 1, pc);
 					nameAndTypeIndex = u2At(poolContents, 3,
 							constantPoolOffsets[index]);
@@ -7351,11 +7354,11 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_putfield:
+				case ByteCodes.putfield:
 					frame.numberOfStackItems -= 2;
 					pc += 3;
 					break;
-				case Opcodes.OPC_invokevirtual:
+				case ByteCodes.invokevirtual:
 					index = u2At(bytecodes, 1, pc);
 					nameAndTypeIndex = u2At(poolContents, 3,
 							constantPoolOffsets[index]);
@@ -7379,7 +7382,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_invokedynamic:
+				case ByteCodes.invokedynamic:
 					index = u2At(bytecodes, 1, pc);
 					nameAndTypeIndex = u2At(poolContents, 3,
 							constantPoolOffsets[index]);
@@ -7397,7 +7400,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 5;
 					break;
-				case Opcodes.OPC_invokespecial:
+				case ByteCodes.invokespecial:
 					index = u2At(bytecodes, 1, pc);
 					nameAndTypeIndex = u2At(poolContents, 3,
 							constantPoolOffsets[index]);
@@ -7426,7 +7429,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_invokestatic:
+				case ByteCodes.invokestatic:
 					index = u2At(bytecodes, 1, pc);
 					nameAndTypeIndex = u2At(poolContents, 3,
 							constantPoolOffsets[index]);
@@ -7450,7 +7453,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_invokeinterface:
+				case ByteCodes.invokeinterface:
 					index = u2At(bytecodes, 1, pc);
 					nameAndTypeIndex = u2At(poolContents, 3,
 							constantPoolOffsets[index]);
@@ -7477,7 +7480,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 5;
 					break;
-				case Opcodes.OPC_new:
+				case ByteCodes.new_:
 					index = u2At(bytecodes, 1, pc);
 					utf8index = u2At(poolContents, 1,
 							constantPoolOffsets[index]);
@@ -7491,7 +7494,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					frame.addStackItem(verificationTypeInfo);
 					pc += 3;
 					break;
-				case Opcodes.OPC_newarray:
+				case ByteCodes.newarray:
 					TypeBinding arrayType = null;
 					switch (u1At(bytecodes, 1, pc)) {
 						case ClassFileConstants.INT_ARRAY :
@@ -7522,7 +7525,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(arrayType);
 					pc += 2;
 					break;
-				case Opcodes.OPC_anewarray:
+				case ByteCodes.anewarray:
 					index = u2At(bytecodes, 1, pc);
 					utf8index = u2At(poolContents, 1,
 							constantPoolOffsets[index]);
@@ -7542,16 +7545,16 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_arraylength:
+				case ByteCodes.arraylength:
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.INT);
 					pc++;
 					break;
-				case Opcodes.OPC_athrow:
+				case ByteCodes.athrow:
 					frame.numberOfStackItems--;
 					pc++;
 					addRealJumpTarget(realJumpTarget, pc - codeOffset);
 					break;
-				case Opcodes.OPC_checkcast:
+				case ByteCodes.checkcast:
 					index = u2At(bytecodes, 1, pc);
 					utf8index = u2At(poolContents, 1,
 							constantPoolOffsets[index]);
@@ -7565,19 +7568,19 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 3;
 					break;
-				case Opcodes.OPC_instanceof:
+				case ByteCodes.instanceof_:
 					// no need to know the class index = u2At(bytecodes, 1, pc);
 					frame.stackItems[frame.numberOfStackItems - 1] = new VerificationTypeInfo(TypeBinding.INT);
 					pc += 3;
 					break;
-				case Opcodes.OPC_monitorenter:
-				case Opcodes.OPC_monitorexit:
+				case ByteCodes.monitorenter:
+				case ByteCodes.monitorexit:
 					frame.numberOfStackItems--;
 					pc++;
 					break;
-				case Opcodes.OPC_wide:
-					opcode = (byte) u1At(bytecodes, 1, pc);
-					if (opcode == Opcodes.OPC_iinc) {
+				case ByteCodes.wide:
+					opcode = Byte.toUnsignedInt((byte) u1At(bytecodes, 1, pc));
+					if (opcode == ByteCodes.iinc) {
 						// index = u2At(bytecodes, 2, pc);
 						// i2At(bytecodes, 4, pc); // const
 						// we don't need the index and the const value
@@ -7586,46 +7589,46 @@ public class ClassFile implements TypeConstants, TypeIds {
 						index = u2At(bytecodes, 2, pc);
 						// need to handle iload, fload, aload, lload, dload, istore, fstore, astore, lstore or dstore
 						switch(opcode) {
-							case Opcodes.OPC_iload :
+							case ByteCodes.iload :
 								frame.addStackItem(new VerificationTypeInfo(TypeBinding.INT));
 								break;
-							case Opcodes.OPC_fload :
+							case ByteCodes.fload :
 								frame.addStackItem(new VerificationTypeInfo(TypeBinding.FLOAT));
 								break;
-							case Opcodes.OPC_aload :
+							case ByteCodes.aload :
 								localsN = frame.locals[index];
 								if (localsN == null) {
 									localsN = retrieveLocal(currentPC, index);
 								}
 								frame.addStackItem(localsN);
 								break;
-							case Opcodes.OPC_lload :
+							case ByteCodes.lload :
 								frame.addStackItem(new VerificationTypeInfo(TypeBinding.LONG));
 								break;
-							case Opcodes.OPC_dload :
+							case ByteCodes.dload :
 								frame.addStackItem(new VerificationTypeInfo(TypeBinding.DOUBLE));
 								break;
-							case Opcodes.OPC_istore :
+							case ByteCodes.istore :
 								frame.numberOfStackItems--;
 								break;
-							case Opcodes.OPC_fstore :
+							case ByteCodes.fstore :
 								frame.numberOfStackItems--;
 								break;
-							case Opcodes.OPC_astore :
+							case ByteCodes.astore :
 								frame.locals[index] = frame.stackItems[frame.numberOfStackItems - 1];
 								frame.numberOfStackItems--;
 								break;
-							case Opcodes.OPC_lstore :
+							case ByteCodes.lstore :
 								frame.numberOfStackItems--;
 								break;
-							case Opcodes.OPC_dstore :
+							case ByteCodes.dstore :
 								frame.numberOfStackItems--;
 								break;
 						}
 						pc += 4;
 					}
 					break;
-				case Opcodes.OPC_multianewarray:
+				case ByteCodes.multianewarray:
 					index = u2At(bytecodes, 1, pc);
 					utf8index = u2At(poolContents, 1,
 							constantPoolOffsets[index]);
@@ -7642,14 +7645,14 @@ public class ClassFile implements TypeConstants, TypeIds {
 					}
 					pc += 4;
 					break;
-				case Opcodes.OPC_ifnull:
-				case Opcodes.OPC_ifnonnull:
+				case ByteCodes.if_acmp_null:
+				case ByteCodes.if_acmp_nonnull:
 					frame.numberOfStackItems--;
 					jumpPC =  currentPC + i2At(bytecodes, 1, pc);
 					addRealJumpTarget(realJumpTarget, jumpPC, frames, createNewFrame(jumpPC, frame, isClinit, methodBinding), scope);
 					pc += 3;
 					break;
-				case Opcodes.OPC_goto_w:
+				case ByteCodes.goto_w:
 					jumpPC =  currentPC + i4At(bytecodes, 1, pc);
 					addRealJumpTarget(realJumpTarget, jumpPC, frames, createNewFrame(jumpPC, frame, isClinit, methodBinding), scope);
 					pc += 5;
@@ -7661,7 +7664,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 								Messages.bind(
 										Messages.abort_invalidOpcode,
 										new Object[] {
-												Byte.valueOf(opcode),
+												Integer.valueOf(opcode),
 												Integer.valueOf(pc),
 												new String(methodBinding.shortReadableName()),
 										}),
@@ -7671,7 +7674,7 @@ public class ClassFile implements TypeConstants, TypeIds {
 								Messages.bind(
 										Messages.abort_invalidOpcode,
 										new Object[] {
-												Byte.valueOf(opcode),
+												Integer.valueOf(opcode),
 												Integer.valueOf(pc),
 												new String(methodBinding.shortReadableName()),
 										}),

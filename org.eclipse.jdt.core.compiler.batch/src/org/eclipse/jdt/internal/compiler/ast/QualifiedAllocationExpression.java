@@ -44,7 +44,6 @@ import java.util.Arrays;
 import org.eclipse.jdt.internal.compiler.ASTVisitor;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.codegen.CodeStream;
-import org.eclipse.jdt.internal.compiler.codegen.Opcodes;
 import org.eclipse.jdt.internal.compiler.flow.FlowContext;
 import org.eclipse.jdt.internal.compiler.flow.FlowInfo;
 import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
@@ -73,6 +72,9 @@ import org.eclipse.jdt.internal.compiler.lookup.TypeBindingVisitor;
 import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 import org.eclipse.jdt.internal.compiler.lookup.TypeIds;
 import org.eclipse.jdt.internal.compiler.lookup.TypeVariableBinding;
+
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.jvm.ByteCodes;
 
 /**
  * Variation on allocation, where can optionally be specified any of:
@@ -219,7 +221,7 @@ public class QualifiedAllocationExpression extends AllocationExpression {
 
 		// invoke constructor
 		if (this.syntheticAccessor == null) {
-			codeStream.invoke(Opcodes.OPC_invokespecial, codegenBinding, null /* default declaringClass */, this.typeArguments);
+			codeStream.invoke(ByteCodes.invokespecial, codegenBinding, null /* default declaringClass */, this.typeArguments);
 		} else {
 			// synthetic accessor got some extra arguments appended to its signature, which need values
 			for (int i = 0,
@@ -228,7 +230,7 @@ public class QualifiedAllocationExpression extends AllocationExpression {
 				i++) {
 				codeStream.aconst_null();
 			}
-			codeStream.invoke(Opcodes.OPC_invokespecial, this.syntheticAccessor, null /* default declaringClass */, this.typeArguments);
+			codeStream.invoke(ByteCodes.invokespecial, this.syntheticAccessor, null /* default declaringClass */, this.typeArguments);
 		}
 		if (valueRequired) {
 			codeStream.generateImplicitConversion(this.implicitConversion);
@@ -382,7 +384,7 @@ public class QualifiedAllocationExpression extends AllocationExpression {
 							ReferenceBinding currentType = (ReferenceBinding)receiverType;
 							do {
 								// isStatic() is answering true for toplevel types
-								if ((currentType.modifiers & ClassFileConstants.AccStatic) != 0) break checkParameterizedAllocation;
+								if ((currentType.modifiers & Flags.STATIC) != 0) break checkParameterizedAllocation;
 								if (currentType.isRawType()) break checkParameterizedAllocation;
 							} while ((currentType = currentType.enclosingType())!= null);
 							ParameterizedQualifiedTypeReference qRef = (ParameterizedQualifiedTypeReference) this.type;

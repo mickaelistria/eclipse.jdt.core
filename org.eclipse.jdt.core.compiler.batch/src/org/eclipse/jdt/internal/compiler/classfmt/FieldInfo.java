@@ -20,10 +20,22 @@ import org.eclipse.jdt.internal.compiler.codegen.AttributeNamesConstants;
 import org.eclipse.jdt.internal.compiler.env.IBinaryAnnotation;
 import org.eclipse.jdt.internal.compiler.env.IBinaryField;
 import org.eclipse.jdt.internal.compiler.env.IBinaryTypeAnnotation;
-import org.eclipse.jdt.internal.compiler.impl.*;
+import org.eclipse.jdt.internal.compiler.impl.BooleanConstant;
+import org.eclipse.jdt.internal.compiler.impl.ByteConstant;
+import org.eclipse.jdt.internal.compiler.impl.CharConstant;
+import org.eclipse.jdt.internal.compiler.impl.Constant;
+import org.eclipse.jdt.internal.compiler.impl.DoubleConstant;
+import org.eclipse.jdt.internal.compiler.impl.FloatConstant;
+import org.eclipse.jdt.internal.compiler.impl.IntConstant;
+import org.eclipse.jdt.internal.compiler.impl.LongConstant;
+import org.eclipse.jdt.internal.compiler.impl.ShortConstant;
+import org.eclipse.jdt.internal.compiler.impl.StringConstant;
 import org.eclipse.jdt.internal.compiler.lookup.TagBits;
 import org.eclipse.jdt.internal.compiler.lookup.TypeIds;
 import org.eclipse.jdt.internal.compiler.util.Util;
+
+import com.sun.tools.javac.code.Flags;
+import com.sun.tools.javac.jvm.ClassFile;
 
 @SuppressWarnings("rawtypes")
 public class FieldInfo extends ClassFileStruct implements IBinaryField, Comparable {
@@ -326,7 +338,7 @@ protected void initialize() {
  * @return boolean
  */
 public boolean isSynthetic() {
-	return (getModifiers() & ClassFileConstants.AccSynthetic) != 0;
+	return (getModifiers() & Flags.SYNTHETIC) != 0;
 }
 private void readConstantAttribute() {
 	int attributesCount = u2At(6);
@@ -341,7 +353,7 @@ private void readConstantAttribute() {
 			// read the right constant
 			int relativeOffset = this.constantPoolOffsets[u2At(readOffset + 6)] - this.structOffset;
 			switch (u1At(relativeOffset)) {
-				case ClassFileConstants.IntegerTag :
+				case ClassFile.CONSTANT_Integer:
 					char[] sign = getTypeName();
 					if (sign.length == 1) {
 						switch (sign[0]) {
@@ -367,16 +379,16 @@ private void readConstantAttribute() {
 						this.constant = Constant.NotAConstant;
 					}
 					break;
-				case ClassFileConstants.FloatTag :
+				case ClassFile.CONSTANT_Float :
 					this.constant = FloatConstant.fromValue(floatAt(relativeOffset + 1));
 					break;
-				case ClassFileConstants.DoubleTag :
+				case ClassFile.CONSTANT_Double :
 					this.constant = DoubleConstant.fromValue(doubleAt(relativeOffset + 1));
 					break;
-				case ClassFileConstants.LongTag :
+				case ClassFile.CONSTANT_Long :
 					this.constant = LongConstant.fromValue(i8At(relativeOffset + 1));
 					break;
-				case ClassFileConstants.StringTag :
+				case ClassFile.CONSTANT_String :
 					utf8Offset = this.constantPoolOffsets[u2At(relativeOffset + 1)] - this.structOffset;
 					this.constant =
 						StringConstant.fromValue(
@@ -405,7 +417,7 @@ private void readModifierRelatedAttributes() {
 					break;
 				case 'S' :
 					if (CharOperation.equals(attributeName, AttributeNamesConstants.SyntheticName))
-						this.accessFlags |= ClassFileConstants.AccSynthetic;
+						this.accessFlags |= Flags.SYNTHETIC;
 					break;
 			}
 		}
