@@ -25,6 +25,7 @@ package org.eclipse.jdt.core.tests.compiler.regression;
 
 import java.util.ArrayList;
 
+import org.eclipse.jdt.core.tests.compiler.parser.UnnamedClassTest;
 import org.eclipse.jdt.core.tests.compiler.util.HashtableOfObjectTest;
 import org.eclipse.jdt.core.tests.compiler.util.JrtUtilTest;
 import org.eclipse.jdt.core.tests.dom.StandAloneASTParserTest;
@@ -236,6 +237,7 @@ public static Test suite() {
 	 since_21.add(RecordPatternTest.class);
 //	 since_21.add(UnnammedPatternsAndVarsTest.class); Enable after implementation.
 	 since_21.add(NullAnnotationTests18.class);
+	 since_21.add(UnnamedClassTest.class);
 
 	 // Build final test suite
 	TestSuite all = new TestSuite(TestAll.class.getName());
