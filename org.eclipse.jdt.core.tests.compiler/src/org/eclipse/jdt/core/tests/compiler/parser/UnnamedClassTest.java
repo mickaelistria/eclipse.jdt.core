@@ -14,7 +14,6 @@ import java.util.Locale;
 import java.util.stream.Stream;
 
 import org.eclipse.jdt.core.tests.compiler.regression.AbstractRegressionTest9;
-import org.eclipse.jdt.core.tests.util.AbstractCompilerTest;
 import org.eclipse.jdt.internal.compiler.CompilationResult;
 import org.eclipse.jdt.internal.compiler.DefaultErrorHandlingPolicies;
 import org.eclipse.jdt.internal.compiler.ast.CompilationUnitDeclaration;
@@ -73,7 +72,7 @@ public class UnnamedClassTest extends AbstractRegressionTest9 {
 		assertFalse(res.compilationResult.hasErrors());
 		assertNull(unnamedClass(res));
 	}
-	
+
 	@Test
 	public void testParseOnlyMain() {
 		CompilationUnitDeclaration res = parse("void main() {}", "A.java");
@@ -92,8 +91,9 @@ public class UnnamedClassTest extends AbstractRegressionTest9 {
 			void main() {}
 			""", "A.java");
 		assertFalse(res.compilationResult.hasErrors());
-		assertEquals(2, unnamedClass(res).methods.length);
+		// hello, main, and the implicit constructor
+		assertEquals(3, unnamedClass(res).methods.length);
 		// should generated A.class (unnamed) and A$B.class
-		//
+		assertEquals(1, res.types[0].memberTypes.length);
 	}
 }
