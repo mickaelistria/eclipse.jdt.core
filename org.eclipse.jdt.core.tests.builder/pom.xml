@@ -36,6 +36,9 @@
 	  				<include>org/eclipse/jdt/core/tests/builder/BuilderTests.class</include>
 	  			</includes>
 	  			<argLine>${tycho.surefire.argLine}</argLine>
+	  			<systemProperties>
+					<property></property>
+				</systemProperties>
 	  		</configuration>
   		</plugin>
   	</plugins>
