@@ -54,7 +54,7 @@ public class CommentRecorderParser extends Parser {
 		int lastCommentIndex = -1;
 
 		//since jdk1.2 look only in the last java doc comment...
-		nextComment : for (lastCommentIndex = this.scanner.commentPtr; lastCommentIndex >= 0; lastCommentIndex--){
+		nextComment : for (lastCommentIndex = getCommentPtr(); lastCommentIndex >= 0; lastCommentIndex--){
 			//look for @deprecated into the first javadoc comment preceeding the declaration
 			int commentSourceStart = this.scanner.commentStarts[lastCommentIndex];
 			// javadoc only (non javadoc comment have negative start and/or end positions.)

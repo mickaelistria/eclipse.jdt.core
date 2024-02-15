@@ -16,14 +16,13 @@ package org.eclipse.jdt.core.tests.dom;
 import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Method;
+import java.nio.charset.Charset;
 import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
-
-import junit.framework.Test;
-import junit.framework.TestSuite;
 
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.jdt.core.ICompilationUnit;
@@ -69,7 +68,17 @@ import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeDeclarationStatement;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.core.dom.VariableDeclarationStatement;
+import org.eclipse.jdt.internal.compiler.CompilationResult;
+import org.eclipse.jdt.internal.compiler.DefaultErrorHandlingPolicies;
+import org.eclipse.jdt.internal.compiler.ast.CompilationUnitDeclaration;
+import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
 import org.eclipse.jdt.internal.compiler.parser.ScannerHelper;
+import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
+import org.eclipse.jdt.internal.compiler.problem.ProblemReporter;
+import org.eclipse.jdt.internal.core.util.CommentRecorderParser;
+
+import junit.framework.Test;
+import junit.framework.TestSuite;
 
 /**
  * Class to test DOM/AST nodes built for Javadoc comments.
@@ -3540,5 +3549,29 @@ public class ASTConverterJavadocTest extends ConverterTestSetup {
 			TextElement textElement = (TextElement) fragment;
 			assumeEquals(this.prefix+"Invalid content for text element ", "{@link BadLink} is just text}", textElement.getText());
 		}
+	}
+	
+	// Regression test for Javadoc not being included in the declaration by
+	// CommentRecorderParser with all those preconditions
+	// 1. CU has a package
+	// 2. Javadoc above primary type
+	// 3. An annotation with arrayInitializer value
+	// 4. Some content to recover in the CU body
+	public void testRecoverCommentRecorderParserIncludesJavadocInDeclaration() {
+		 
+		CommentRecorderParser parser = new CommentRecorderParser(new ProblemReporter(
+					DefaultErrorHandlingPolicies.proceedWithAllProblems(),
+					new CompilerOptions(getDefaultJavaCoreOptions()),
+					new DefaultProblemFactory(Locale.getDefault())), false);
+		parser.setStatementsRecovery(true);
+		CompilationUnitDeclaration res = parser.parse(new org.eclipse.jdt.internal.compiler.batch.CompilationUnit("""
+			package p;
+			/** some javadoc */
+			@SomeAnnotationWithArrayInitializer({})
+			public class A {
+			    B run= new B(
+			}
+			""".toCharArray(), "A.java", Charset.defaultCharset().toString()), new CompilationResult(new char[0], 0, 0, 0));
+		assertEquals(11, res.types[0].declarationSourceStart);
 	}
 }
