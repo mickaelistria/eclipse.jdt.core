@@ -12,6 +12,9 @@ on:
 jobs:
   build-dom-javac:
     runs-on: ubuntu-latest
+    permissions:
+     checks: write
+     contents: read
     steps:
     - name: Install xmllint
       shell: bash
@@ -51,3 +54,6 @@ jobs:
         echo ❌ FAILURES: $(xmllint --xpath 'string(/testsuite/@failures)' */target/surefire-reports/TEST-*.xml | awk '{n += $1}; END{print n}' -)
         echo 💥 ERRORS: $(xmllint --xpath 'string(/testsuite/@errors)' */target/surefire-reports/TEST-*.xml | awk '{n += $1}; END{print n}' -)
         echo 🛑 SKIPPED: $(xmllint --xpath 'string(/testsuite/@skipped)' */target/surefire-reports/TEST-*.xml | awk '{n += $1}; END{print n}' -)
+    - name: Publish Test Report
+      if: success() || failure()
+      uses: scacap/action-surefire-report@v1
