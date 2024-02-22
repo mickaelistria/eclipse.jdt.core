@@ -13,10 +13,12 @@ package org.eclipse.jdt.internal.core;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.Set;
 import java.util.Stack;
 import java.util.stream.Stream;
@@ -96,6 +98,7 @@ class DOMToModelPopulator extends ASTVisitor {
 	private final Stack<JavaElement> elements = new Stack<>();
 	private final Stack<JavaElementInfo> infos = new Stack<>();
 	private final Set<String> currentTypeParameters = new HashSet<>();
+	private final Map<IElementInfo, Integer> anonymousChildren = new HashMap<>();
 	private final CompilationUnitElementInfo unitInfo;
 	private ImportContainer importContainer;
 	private ImportContainerInfo importContainerInfo;
@@ -111,6 +114,16 @@ class DOMToModelPopulator extends ASTVisitor {
 	}
 
 	private static void addAsChild(JavaElementInfo parentInfo, IJavaElement childElement) {
+		if (childElement instanceof SourceType sourceType) {
+			long occurrenceCount = Stream.of(parentInfo.getChildren())
+				.filter(SourceType.class::isInstance)
+				.map(SourceType.class::cast)
+				.filter(other -> Objects.equals(other.getElementName(), sourceType.getElementName()))
+				.count();
+			if (occurrenceCount != 0) {
+				sourceType.setOccurrenceCount((int)occurrenceCount + 1);
+			}
+		}
 		if (parentInfo instanceof AnnotatableInfo annotable && childElement instanceof IAnnotation annotation) {
 			IAnnotation[] newAnnotations = Arrays.copyOf(annotable.annotations, annotable.annotations.length + 1);
 			newAnnotations[newAnnotations.length - 1] = annotation;
