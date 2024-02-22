@@ -114,14 +114,13 @@ class DOMToModelPopulator extends ASTVisitor {
 	}
 
 	private static void addAsChild(JavaElementInfo parentInfo, IJavaElement childElement) {
-		if (childElement instanceof SourceType sourceType) {
+		if (childElement instanceof SourceRefElement element && (element instanceof SourceType || childElement.getElementName().isEmpty())) {
 			long occurrenceCount = Stream.of(parentInfo.getChildren())
-				.filter(SourceType.class::isInstance)
-				.map(SourceType.class::cast)
-				.filter(other -> Objects.equals(other.getElementName(), sourceType.getElementName()))
+				.filter(other -> other.getElementType() == element.getElementType())
+				.filter(other -> Objects.equals(other.getElementName(), element.getElementName()))
 				.count();
 			if (occurrenceCount != 0) {
-				sourceType.setOccurrenceCount((int)occurrenceCount + 1);
+				element.setOccurrenceCount((int)occurrenceCount + 1);
 			}
 		}
 		if (parentInfo instanceof AnnotatableInfo annotable && childElement instanceof IAnnotation annotation) {
