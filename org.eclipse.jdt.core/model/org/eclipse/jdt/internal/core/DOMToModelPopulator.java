@@ -114,14 +114,13 @@ class DOMToModelPopulator extends ASTVisitor {
 	}
 
 	private static void addAsChild(JavaElementInfo parentInfo, IJavaElement childElement) {
-		if (childElement instanceof SourceType sourceType) {
+		if (childElement instanceof SourceRefElement element && (element instanceof SourceType || childElement.getElementName().isEmpty())) {
 			long occurrenceCount = Stream.of(parentInfo.getChildren())
-				.filter(SourceType.class::isInstance)
-				.map(SourceType.class::cast)
-				.filter(other -> Objects.equals(other.getElementName(), sourceType.getElementName()))
+				.filter(other -> other.getElementType() == element.getElementType())
+				.filter(other -> Objects.equals(other.getElementName(), element.getElementName()))
 				.count();
 			if (occurrenceCount != 0) {
-				sourceType.setOccurrenceCount((int)occurrenceCount + 1);
+				element.setOccurrenceCount((int)occurrenceCount + 1);
 			}
 		}
 		if (parentInfo instanceof AnnotatableInfo annotable && childElement instanceof IAnnotation annotation) {
@@ -473,7 +472,10 @@ class DOMToModelPopulator extends ASTVisitor {
 		SourceMethod newElement = new SourceMethod(this.elements.peek(),
 			method.getName().getIdentifier(),
 			parameters.stream()
-				.map(this::createSignature)
+				.map(SingleVariableDeclaration::getType)
+				// not using Util.getSignature(type) as it can remove the qualifier
+				.map(Type::toString)
+				.map(type -> Signature.createTypeSignature(type, false))
 				.toArray(String[]::new));
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
@@ -836,7 +838,7 @@ class DOMToModelPopulator extends ASTVisitor {
 				parameter.getStartPosition() + parameter.getLength() - 1,
 				parameter.getName().getStartPosition(),
 				parameter.getName().getStartPosition() + parameter.getName().getLength() - 1,
-				Util.getSignature(parameter.getType()),
+				Signature.createTypeSignature(parameter.getType().toString(), false),
 				null, // TODO
 				parameter.getFlags(),
 				parameter.getParent() instanceof MethodDeclaration);
