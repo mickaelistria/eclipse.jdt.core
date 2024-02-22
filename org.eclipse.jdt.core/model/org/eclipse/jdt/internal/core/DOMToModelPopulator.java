@@ -636,35 +636,35 @@ class DOMToModelPopulator extends ASTVisitor {
 
 	@Override
 	public boolean visit(AnonymousClassDeclaration decl) {
+		SourceType newElement = new SourceType(this.elements.peek(), ""); //$NON-NLS-1$
+		this.elements.push(newElement);
+		addAsChild(this.infos.peek(), newElement);
+		SourceTypeElementInfo newInfo = new SourceTypeElementInfo() {
+			@Override
+			public boolean isAnonymousMember() {
+				return true;
+			}
+		};
+		JavaElementInfo toPopulateCategories = this.infos.peek();
+		while (toPopulateCategories != null) {
+			if (toPopulateCategories instanceof SourceTypeElementInfo parentTypeInfo) {
+				toPopulateCategories = (JavaElementInfo)parentTypeInfo.getEnclosingType();
+			} else {
+				break;
+			}
+		}
+
+		newInfo.setSourceRangeEnd(decl.getStartPosition() + decl.getLength() - 1);
+		newInfo.setHandle(newElement);
+		newInfo.setSourceRangeStart(decl.getStartPosition());
+		newInfo.setSourceRangeEnd(decl.getStartPosition() + decl.getLength() - 1);
 		if (decl.getParent() instanceof ClassInstanceCreation constructorInvocation) {
 			if (constructorInvocation.getAST().apiLevel() > 2) {
 				((List<SimpleType>)constructorInvocation.typeArguments())
-				.stream()
-				.map(SimpleType::getName)
-				.map(Name::getFullyQualifiedName)
-				.forEach(this.currentTypeParameters::add);
-			}
-			SourceType newElement = new SourceType(this.elements.peek(), ""); //$NON-NLS-1$
-			this.elements.push(newElement);
-			addAsChild(this.infos.peek(), newElement);
-			SourceTypeElementInfo newInfo = new SourceTypeElementInfo() {
-				@Override
-				public boolean isAnonymousMember() {
-					return true;
-				}
-			};
-			JavaElementInfo toPopulateCategories = this.infos.peek();
-			while (toPopulateCategories != null) {
-				if (toPopulateCategories instanceof SourceTypeElementInfo parentTypeInfo) {
-					toPopulateCategories = (JavaElementInfo)parentTypeInfo.getEnclosingType();
-				} else {
-					break;
-				}
-			}
-
-			newInfo.setSourceRangeEnd(decl.getStartPosition() + decl.getLength() - 1);
-			newInfo.setHandle(newElement);
-			if (constructorInvocation.getAST().apiLevel() > 2) {
+					.stream()
+					.map(SimpleType::getName)
+					.map(Name::getFullyQualifiedName)
+					.forEach(this.currentTypeParameters::add);
 				newInfo.setNameSourceStart(constructorInvocation.getType().getStartPosition());
 				newInfo.setSourceRangeStart(constructorInvocation.getStartPosition());
 				newInfo.setNameSourceEnd(constructorInvocation.getType().getStartPosition() + constructorInvocation.getType().getLength() - 1);
@@ -673,16 +673,16 @@ class DOMToModelPopulator extends ASTVisitor {
 				newInfo.setSourceRangeStart(constructorInvocation.getName().getStartPosition());
 				newInfo.setNameSourceEnd(constructorInvocation.getName().getStartPosition() + constructorInvocation.getName().getLength() - 1);
 			}
-			this.infos.push(newInfo);
-			this.toPopulate.put(newElement, newInfo);
 		}
+		this.infos.push(newInfo);
+		this.toPopulate.put(newElement, newInfo);
 		return true;
 	}
 	@Override
 	public void endVisit(AnonymousClassDeclaration decl) {
+		this.elements.pop();
+		this.infos.pop();
 		if (decl.getParent() instanceof ClassInstanceCreation constructorInvocation) {
-			this.elements.pop();
-			this.infos.pop();
 			if (constructorInvocation.getAST().apiLevel() > 2) {
 				((List<SimpleType>)constructorInvocation.typeArguments())
 				.stream()
