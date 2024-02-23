@@ -28,6 +28,7 @@ import org.eclipse.jdt.core.compiler.*;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -35,6 +36,8 @@ import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.MethodReference;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NodeFinder;
+import org.eclipse.jdt.core.dom.ParameterizedType;
+import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.internal.compiler.IProblemFactory;
@@ -469,6 +472,10 @@ static IBinding resolveBinding(ASTNode node) {
 		return type.resolveBinding();
 	}
 	if (node instanceof Name aName) {
+		ClassInstanceCreation newInstance = findConstructor(aName);
+		if (newInstance != null) {
+			return newInstance.resolveConstructorBinding();
+		}
 		IBinding res = aName.resolveBinding();
 		if (res != null) {
 			return res;
@@ -485,6 +492,21 @@ static IBinding resolveBinding(ASTNode node) {
 		return typeParameter.resolveBinding();
 	}
 	return null;
+}
+
+
+private static ClassInstanceCreation findConstructor(ASTNode node) {
+	while (node != null && !(node instanceof ClassInstanceCreation)) {
+		ASTNode parent = node.getParent();
+		if ((parent instanceof SimpleType type && type.getName() == node) ||
+			(parent instanceof ClassInstanceCreation constructor && constructor.getType() == node) ||
+			(parent instanceof ParameterizedType parameterized && parameterized.getType() == node)) {
+			node = parent;
+		} else {
+			node = null;
+		}
+	}
+	return (ClassInstanceCreation)node;
 }
 
 
