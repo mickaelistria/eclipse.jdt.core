@@ -518,6 +518,7 @@ private org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner 
 		parser.setResolveBindings(true);
 		parser.setStatementsRecovery(true);
 		parser.setBindingsRecovery(true);
+		parser.setCompilerOptions(getOptions(true));
 		if (parser.createAST(null) instanceof org.eclipse.jdt.core.dom.CompilationUnit newAST) {
 			this.ast = newAST;
 		}
@@ -1600,6 +1601,17 @@ public void setOptions(Map<String, String> newOptions) {
 public Map<String, String> getCustomOptions() {
 	try {
 		Map<String, String> customOptions = this.getCompilationUnitElementInfo().getCustomOptions();
+		IJavaProject parentProject = getJavaProject();
+		Map<String, String> parentOptions = parentProject == null ? JavaCore.getOptions() : parentProject.getOptions(true);
+		if (JavaCore.ENABLED.equals(parentOptions.get(JavaCore.COMPILER_PB_ENABLE_PREVIEW_FEATURES)) &&
+			AST.newAST(parentOptions).apiLevel() != AST.getJLSLatest()) {
+			// Disable preview features for older Java releases as it causes the compiler to fail later
+			if (customOptions != null) {
+				customOptions.put(JavaCore.COMPILER_PB_ENABLE_PREVIEW_FEATURES, JavaCore.DISABLED);	
+			} else {
+				customOptions = Map.of(JavaCore.COMPILER_PB_ENABLE_PREVIEW_FEATURES, JavaCore.DISABLED);
+			}
+		}
 		return customOptions == null ? Collections.emptyMap() : customOptions;
 	} catch (JavaModelException e) {
 		// do nothing
