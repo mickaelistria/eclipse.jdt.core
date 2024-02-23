@@ -13,7 +13,6 @@ package org.eclipse.jdt.internal.core;
 import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -98,7 +97,6 @@ class DOMToModelPopulator extends ASTVisitor {
 	private final Stack<JavaElement> elements = new Stack<>();
 	private final Stack<JavaElementInfo> infos = new Stack<>();
 	private final Set<String> currentTypeParameters = new HashSet<>();
-	private final Map<IElementInfo, Integer> anonymousChildren = new HashMap<>();
 	private final CompilationUnitElementInfo unitInfo;
 	private ImportContainer importContainer;
 	private ImportContainerInfo importContainerInfo;
@@ -114,13 +112,12 @@ class DOMToModelPopulator extends ASTVisitor {
 	}
 
 	private static void addAsChild(JavaElementInfo parentInfo, IJavaElement childElement) {
-		if (childElement instanceof SourceRefElement element && (element instanceof SourceType || childElement.getElementName().isEmpty())) {
-			long occurrenceCount = Stream.of(parentInfo.getChildren())
+		if (childElement instanceof SourceRefElement element) {
+			while (Stream.of(parentInfo.getChildren())
 				.filter(other -> other.getElementType() == element.getElementType())
-				.filter(other -> Objects.equals(other.getElementName(), element.getElementName()))
-				.count();
-			if (occurrenceCount != 0) {
-				element.setOccurrenceCount((int)occurrenceCount + 1);
+				.filter(other -> Objects.equals(other.getHandleIdentifier(), element.getHandleIdentifier()))
+				.findAny().isPresent()) {
+					element.incOccurrenceCount();
 			}
 		}
 		if (parentInfo instanceof AnnotatableInfo annotable && childElement instanceof IAnnotation annotation) {
