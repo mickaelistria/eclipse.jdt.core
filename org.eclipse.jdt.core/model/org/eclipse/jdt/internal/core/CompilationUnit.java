@@ -448,7 +448,10 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 		ASTNode node = finder.getCoveredNode() != null ? finder.getCoveredNode() : finder.getCoveringNode();
 		IBinding binding = resolveBinding(node);
 		if (binding != null) {
-			return new IJavaElement[] { binding.getJavaElement() };
+			IJavaElement element = binding.getJavaElement();
+			if (element != null) {
+				return new IJavaElement[] { element };
+			}
 		}
 		return new IJavaElement[0];
 	} else {
