@@ -29,6 +29,7 @@ import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
+import org.eclipse.jdt.core.dom.Comment;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -444,8 +445,57 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 		if (currentAST == null) {
 			return new IJavaElement[0];
 		}
+		int initialOffset = offset, initialLength = length;
+		boolean insideComment = ((List<Comment>)currentAST.getCommentList()).stream()
+			.anyMatch(comment -> comment.getStartPosition() <= initialOffset && comment.getStartPosition() + comment.getLength() >= initialOffset + initialLength);
+		if (!insideComment) { // trim whitespaces and surrounding comments
+			boolean changed = false;
+			do {
+				changed = false;
+				if (Character.isWhitespace(getSource().charAt(offset))) {
+					offset++;
+					length--;
+					changed = true;
+				}
+				if (Character.isWhitespace(getSource().charAt(offset + length - 1))) {
+					length--;
+					changed = true;
+				}
+				List<Comment> comments = currentAST.getCommentList();
+				// leading comment
+				int offset1 = offset, length1 = length;
+				OptionalInt leadingCommentEnd = comments.stream().filter(comment -> {
+					int commentEndOffset = comment.getStartPosition() + comment.getLength() -1;
+					return comment.getStartPosition() <= offset1 && commentEndOffset > offset1 && commentEndOffset < offset1 + length1 - 1;
+				}).mapToInt(comment -> comment.getStartPosition() + comment.getLength() - 1)
+				.findAny();
+				if (leadingCommentEnd.isPresent()) {
+					changed = true;
+					int newStart = leadingCommentEnd.getAsInt();
+					int removedLeading = newStart + 1 - offset;
+					offset = newStart + 1;
+					length -= removedLeading;
+				}
+				// Trailing comment
+				int offset2 = offset, length2 = length;
+				OptionalInt trailingCommentStart = comments.stream().filter(comment -> {
+					return comment.getStartPosition() >= offset2
+						&& comment.getStartPosition() < offset2 + length2
+						&& comment.getStartPosition() + comment.getLength() > offset2 + length2;
+				}).mapToInt(Comment::getStartPosition)
+				.findAny();
+				if (trailingCommentStart.isPresent()) {
+					changed = true;
+					int newEnd = trailingCommentStart.getAsInt();
+					int removedTrailing = offset + length - 1 - newEnd;
+					length -= removedTrailing;
+				}
+			} while (changed);
+		}
 		NodeFinder finder = new NodeFinder(currentAST, offset, length);
-		ASTNode node = finder.getCoveredNode() != null ? finder.getCoveredNode() : finder.getCoveringNode();
+		ASTNode node = finder.getCoveredNode() != null && finder.getCoveringNode().getStartPosition() + finder.getCoveringNode().getLength() > offset + length ?
+			finder.getCoveredNode() :
+			finder.getCoveringNode();
 		IBinding binding = resolveBinding(node);
 		if (binding != null) {
 			IJavaElement element = binding.getJavaElement();
