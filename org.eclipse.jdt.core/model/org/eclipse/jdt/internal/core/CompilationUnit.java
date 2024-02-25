@@ -452,12 +452,12 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 			boolean changed = false;
 			do {
 				changed = false;
-				if (Character.isWhitespace(getSource().charAt(offset))) {
+				if (length > 0 && Character.isWhitespace(getSource().charAt(offset))) {
 					offset++;
 					length--;
 					changed = true;
 				}
-				if (Character.isWhitespace(getSource().charAt(offset + length - 1))) {
+				if (length > 0 && Character.isWhitespace(getSource().charAt(offset + length - 1))) {
 					length--;
 					changed = true;
 				}
@@ -469,7 +469,7 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 					return comment.getStartPosition() <= offset1 && commentEndOffset > offset1 && commentEndOffset < offset1 + length1 - 1;
 				}).mapToInt(comment -> comment.getStartPosition() + comment.getLength() - 1)
 				.findAny();
-				if (leadingCommentEnd.isPresent()) {
+				if (length > 0 && leadingCommentEnd.isPresent()) {
 					changed = true;
 					int newStart = leadingCommentEnd.getAsInt();
 					int removedLeading = newStart + 1 - offset;
@@ -484,7 +484,7 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 						&& comment.getStartPosition() + comment.getLength() > offset2 + length2;
 				}).mapToInt(Comment::getStartPosition)
 				.findAny();
-				if (trailingCommentStart.isPresent()) {
+				if (length > 0 && trailingCommentStart.isPresent()) {
 					changed = true;
 					int newEnd = trailingCommentStart.getAsInt();
 					int removedTrailing = offset + length - 1 - newEnd;
