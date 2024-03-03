@@ -566,6 +566,7 @@ private static ClassInstanceCreation findConstructor(ASTNode node) {
 private org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner workingCopyOwner) {
 	if (this.ast == null) {
 		ASTParser parser = ASTParser.newParser(AST.getJLSLatest()); // TODO use Java project info
+		parser.setWorkingCopyOwner(workingCopyOwner);
 		parser.setSource(this);
 		// greedily enable everything assuming the AST will be used extensively for edition
 		parser.setResolveBindings(true);

@@ -562,7 +562,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		info.nameStart = node.getName().getStartPosition();
 		info.nameEnd = node.getName().getStartPosition() + node.getName().getLength() - 1;
 		info.bounds = ((List<Type>)node.typeBounds()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new);
-		info.boundsSignatures = ((List<Type>)node.typeBounds()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new);
+		info.boundsSignatures = ((List<Type>)node.typeBounds()).stream().map(Util::getSignature).map(String::toCharArray).toArray(char[][]::new);
 		this.infos.push(info);
 		this.toPopulate.put(newElement, info);
 		return true;
