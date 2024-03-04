@@ -30,6 +30,7 @@ import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.Comment;
+import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -39,6 +40,7 @@ import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NodeFinder;
 import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.SimpleType;
+import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.internal.compiler.IProblemFactory;
@@ -503,6 +505,8 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 				return new IJavaElement[] { element };
 			}
 		}
+		// Possible fallback: crawl the children of this
+		// unit for the smallest one covering the range.
 		return new IJavaElement[0];
 	} else {
 		return super.codeSelect(this, offset, length, workingCopyOwner);
@@ -527,7 +531,24 @@ static IBinding resolveBinding(ASTNode node) {
 	if (node instanceof Name aName) {
 		ClassInstanceCreation newInstance = findConstructor(aName);
 		if (newInstance != null) {
-			return newInstance.resolveConstructorBinding();
+			var constructorBinding = newInstance.resolveConstructorBinding();
+			if (constructorBinding != null) {
+				var constructorElement = constructorBinding.getJavaElement();
+				boolean hasSource = true;
+				try {
+					hasSource = ((ISourceReference)constructorElement.getParent()).getSource() != null;
+				} catch (Exception e) {
+					hasSource = false;
+				}
+				// TODO improve binding->Java element resolution for anonymous types
+				// maybe a bug in Util.getUnresolvedJavaElement(methodBinding, ...)
+				// for constructors of anonymous types?
+				if (constructorElement != null &&
+					(constructorBinding.getParameterTypes().length > 0 /*non-default*/ || 
+					constructorElement instanceof SourceMethod || !hasSource)) {
+					return constructorBinding;
+				}
+			}
 		}
 		IBinding res = aName.resolveBinding();
 		if (res != null) {
@@ -543,6 +564,12 @@ static IBinding resolveBinding(ASTNode node) {
 	}
 	if (node instanceof org.eclipse.jdt.core.dom.TypeParameter typeParameter) {
 		return typeParameter.resolveBinding();
+	}
+	if (node instanceof SuperConstructorInvocation superConstructor) {
+		return superConstructor.resolveConstructorBinding();
+	}
+	if (node instanceof ConstructorInvocation constructor) {
+		return constructor.resolveConstructorBinding();
 	}
 	return null;
 }

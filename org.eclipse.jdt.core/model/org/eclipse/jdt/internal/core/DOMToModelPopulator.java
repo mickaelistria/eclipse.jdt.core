@@ -506,7 +506,6 @@ class DOMToModelPopulator extends ASTVisitor {
 			| ((method.getAST().apiLevel() > AST.JLS2 && ((List<SingleVariableDeclaration>)method.parameters()).stream().anyMatch(SingleVariableDeclaration::isVarargs)) ? Flags.AccVarargs : 0));
 		info.setNameSourceStart(method.getName().getStartPosition());
 		info.setNameSourceEnd(method.getName().getStartPosition() + method.getName().getLength() - 1);
-		info.isCanonicalConstructor = method.isConstructor();
 		this.infos.push(info);
 		this.toPopulate.put(newElement, info);
 		return true;
