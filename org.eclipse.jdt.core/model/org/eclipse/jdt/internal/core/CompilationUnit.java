@@ -443,6 +443,12 @@ public IJavaElement[] codeSelect(int offset, int length) throws JavaModelExcepti
 @Override
 public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workingCopyOwner) throws JavaModelException {
 	if (DOM_BASED_OPERATIONS) {
+		if (offset < 0) {
+			throw new JavaModelException(new IndexOutOfBoundsException(offset), IJavaModelStatusConstants.INDEX_OUT_OF_BOUNDS);
+		}
+		if (offset + length > getSource().length()) {
+			throw new JavaModelException(new IndexOutOfBoundsException(offset + length), IJavaModelStatusConstants.INDEX_OUT_OF_BOUNDS);
+		}
 		org.eclipse.jdt.core.dom.CompilationUnit currentAST = getOrBuildAST(workingCopyOwner);
 		if (currentAST == null) {
 			return new IJavaElement[0];
