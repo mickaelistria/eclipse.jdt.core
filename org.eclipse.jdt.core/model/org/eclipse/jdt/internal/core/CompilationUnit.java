@@ -511,9 +511,42 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 				return new IJavaElement[] { element };
 			}
 		}
-		// Possible fallback: crawl the children of this
-		// unit for the smallest one covering the range.
-		return new IJavaElement[0];
+		// fallback: crawl the children of this unit
+		IJavaElement currentElement = this;
+		boolean newChildFound;
+		int finalOffset = offset;
+		int finalLength = length;
+		do {
+			newChildFound = false;
+			if (currentElement instanceof IParent parentElement) {
+				Optional<IJavaElement> candidate = Stream.of(parentElement.getChildren())
+					.filter(ISourceReference.class::isInstance)
+					.map(ISourceReference.class::cast)
+					.filter(sourceRef -> {
+						try {
+							ISourceRange elementRange = sourceRef.getSourceRange();
+							return elementRange != null
+								&& elementRange.getOffset() >= 0
+								&& elementRange.getOffset() <= finalOffset
+								&& elementRange.getOffset() + elementRange.getLength() >= finalOffset + finalLength;
+						} catch (JavaModelException e) {
+							return false;
+						}
+					}).map(IJavaElement.class::cast)
+					.findAny();
+				if (candidate.isPresent()) {
+					newChildFound = true;
+					currentElement = candidate.get();	
+				}
+			}
+		} while (newChildFound);
+		return currentElement instanceof JavaElement impl &&
+				impl.getElementInfo() instanceof AnnotatableInfo annotable &&
+				annotable.getNameSourceStart() >= 0 &&
+				annotable.getNameSourceStart() <= offset &&
+				annotable.getNameSourceEnd() >= offset ?
+			new IJavaElement[] { currentElement } :
+			new IJavaElement[0];
 	} else {
 		return super.codeSelect(this, offset, length, workingCopyOwner);
 	}
