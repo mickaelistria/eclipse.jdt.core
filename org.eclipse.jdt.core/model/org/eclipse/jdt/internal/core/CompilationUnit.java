@@ -56,6 +56,7 @@ import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
 import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 import org.eclipse.jdt.internal.compiler.problem.AbortCompilationUnit;
 import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
+import org.eclipse.jdt.internal.compiler.problem.ProblemSeverities;
 import org.eclipse.jdt.internal.compiler.util.SuffixConstants;
 import org.eclipse.jdt.internal.core.util.DeduplicationUtil;
 import org.eclipse.jdt.internal.core.search.BasicSearchEngine;
@@ -180,7 +181,32 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 		astParser.setBindingsRecovery((reconcileFlags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0);
 		astParser.setIgnoreMethodBodies((reconcileFlags & ICompilationUnit.IGNORE_METHOD_BODIES) != 0);
 		astParser.setCompilerOptions(options);
-		if (astParser.createAST(pm) instanceof org.eclipse.jdt.core.dom.CompilationUnit newAST) {
+		ASTNode dom = null;
+		try {
+			dom = astParser.createAST(pm);
+		} catch (AbortCompilationUnit e) {
+			var problem = e.problem; 
+			if (problem == null && e.exception instanceof IOException ioEx) {
+				String path = source.getPath().toString();
+				String exceptionTrace = ioEx.getClass().getName() + ':' + ioEx.getMessage();
+				problem = new DefaultProblemFactory().createProblem(
+						path.toCharArray(),
+						IProblem.CannotReadSource,
+						new String[] { path, exceptionTrace },
+						new String[] { path, exceptionTrace },
+						ProblemSeverities.AbortCompilation | ProblemSeverities.Error | ProblemSeverities.Fatal,
+						0, 0, 1, 0);
+			}
+			if (problems != null) {
+				problems.put(Integer.toString(CategorizedProblem.CAT_BUILDPATH),
+					new CategorizedProblem[] { problem });
+			} else if (perWorkingCopyInfo != null) {
+				perWorkingCopyInfo.beginReporting();
+				perWorkingCopyInfo.acceptProblem(problem);
+				perWorkingCopyInfo.endReporting();
+			}
+		}
+		if (dom instanceof org.eclipse.jdt.core.dom.CompilationUnit newAST) {
 			if (computeProblems) {
 				if (perWorkingCopyInfo != null && problems == null) {
 					try {
