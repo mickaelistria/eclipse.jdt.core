@@ -33,6 +33,7 @@ import org.eclipse.jdt.core.dom.Comment;
 import org.eclipse.jdt.core.dom.ConstructorInvocation;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IBinding;
+import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.MethodReference;
@@ -43,6 +44,10 @@ import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
+import org.eclipse.jdt.core.search.IJavaSearchConstants;
+import org.eclipse.jdt.core.search.IJavaSearchScope;
+import org.eclipse.jdt.core.search.SearchPattern;
+import org.eclipse.jdt.core.search.TypeNameMatchRequestor;
 import org.eclipse.jdt.internal.compiler.IProblemFactory;
 import org.eclipse.jdt.internal.compiler.SourceElementParser;
 import org.eclipse.jdt.internal.compiler.ast.CompilationUnitDeclaration;
@@ -52,6 +57,8 @@ import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 import org.eclipse.jdt.internal.compiler.problem.AbortCompilationUnit;
 import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
 import org.eclipse.jdt.internal.compiler.util.SuffixConstants;
+import org.eclipse.jdt.internal.core.search.BasicSearchEngine;
+import org.eclipse.jdt.internal.core.search.TypeNameMatchRequestorWrapper;
 import org.eclipse.jdt.internal.core.util.MementoTokenizer;
 import org.eclipse.jdt.internal.core.util.Messages;
 import org.eclipse.jdt.internal.core.util.Util;
@@ -507,6 +514,30 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 		IBinding binding = resolveBinding(node);
 		if (binding != null) {
 			IJavaElement element = binding.getJavaElement();
+			if (element == null && binding instanceof ITypeBinding typeBinding) {
+				// fallback to calling index, inspired/copied from SelectionEngine
+				List<IType> indexMatch = new ArrayList<>();
+				TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
+					@Override
+					public void acceptTypeNameMatch(org.eclipse.jdt.core.search.TypeNameMatch match) {
+						indexMatch.add(match.getType());
+					}
+				};
+				IJavaSearchScope scope = BasicSearchEngine.createWorkspaceScope();
+				new BasicSearchEngine(getOwner()).searchAllTypeNames(
+					typeBinding.getPackage() != null ? typeBinding.getPackage().getName().toCharArray() : null,
+					SearchPattern.R_EXACT_MATCH,
+					typeBinding.getName().toCharArray(),
+					SearchPattern.R_EXACT_MATCH | SearchPattern.R_CASE_SENSITIVE,
+					IJavaSearchConstants.TYPE,
+					scope,
+					new TypeNameMatchRequestorWrapper(requestor, scope),
+					IJavaSearchConstants.CANCEL_IF_NOT_READY_TO_SEARCH,
+					new NullProgressMonitor());
+				if (!indexMatch.isEmpty()) {
+					return indexMatch.toArray(IJavaElement[]::new);
+				}
+			}
 			if (element != null) {
 				return new IJavaElement[] { element };
 			}
