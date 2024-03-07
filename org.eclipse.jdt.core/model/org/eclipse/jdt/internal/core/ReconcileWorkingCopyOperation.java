@@ -13,6 +13,7 @@
  *******************************************************************************/
 package org.eclipse.jdt.internal.core;
 
+import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
@@ -23,11 +24,15 @@ import org.eclipse.core.runtime.SafeRunner;
 import org.eclipse.jdt.core.*;
 import org.eclipse.jdt.core.compiler.CategorizedProblem;
 import org.eclipse.jdt.core.compiler.CompilationParticipant;
+import org.eclipse.jdt.core.compiler.IProblem;
 import org.eclipse.jdt.core.compiler.ReconcileContext;
 import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.PrimitiveType;
 import org.eclipse.jdt.internal.compiler.ast.CompilationUnitDeclaration;
+import org.eclipse.jdt.internal.compiler.problem.AbortCompilationUnit;
+import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
+import org.eclipse.jdt.internal.compiler.problem.ProblemSeverities;
 import org.eclipse.jdt.internal.core.util.Messages;
 import org.eclipse.jdt.internal.core.util.Util;
 
@@ -187,21 +192,38 @@ public class ReconcileWorkingCopyOperation extends JavaModelOperation {
 				}
 				Map<String, String> options = workingCopy.getJavaProject().getOptions(true);
 				if (CompilationUnit.DOM_BASED_OPERATIONS) {
-					ASTParser parser = ASTParser.newParser(this.astLevel > 0 ? this.astLevel : AST.getJLSLatest());
-					parser.setResolveBindings(this.resolveBindings || (this.reconcileFlags & ICompilationUnit.FORCE_PROBLEM_DETECTION) != 0);
-					parser.setCompilerOptions(options);
-					parser.setSource(source);
-					org.eclipse.jdt.core.dom.CompilationUnit newAST = (org.eclipse.jdt.core.dom.CompilationUnit) parser.createAST(this.progressMonitor);
-					if ((this.reconcileFlags & ICompilationUnit.FORCE_PROBLEM_DETECTION) != 0 && newAST != null) {
-						newAST.getAST().resolveWellKnownType(PrimitiveType.BOOLEAN.toString()); //trigger resolution and analysis
-					}
-					CategorizedProblem[] newProblems = Arrays.stream(newAST.getProblems())
-						.filter(CategorizedProblem.class::isInstance)
-						.map(CategorizedProblem.class::cast)
-						.toArray(CategorizedProblem[]::new);
-					this.problems.put(Integer.toString(CategorizedProblem.CAT_UNSPECIFIED), newProblems); // TODO better category
-					if (this.astLevel != ICompilationUnit.NO_AST) {
-						this.ast = newAST;
+					try {
+						ASTParser parser = ASTParser.newParser(this.astLevel > 0 ? this.astLevel : AST.getJLSLatest());
+						parser.setResolveBindings(this.resolveBindings || (this.reconcileFlags & ICompilationUnit.FORCE_PROBLEM_DETECTION) != 0);
+						parser.setCompilerOptions(options);
+						parser.setSource(source);
+						org.eclipse.jdt.core.dom.CompilationUnit newAST = (org.eclipse.jdt.core.dom.CompilationUnit) parser.createAST(this.progressMonitor);
+						if ((this.reconcileFlags & ICompilationUnit.FORCE_PROBLEM_DETECTION) != 0 && newAST != null) {
+							newAST.getAST().resolveWellKnownType(PrimitiveType.BOOLEAN.toString()); //trigger resolution and analysis
+						}
+						CategorizedProblem[] newProblems = Arrays.stream(newAST.getProblems())
+							.filter(CategorizedProblem.class::isInstance)
+							.map(CategorizedProblem.class::cast)
+							.toArray(CategorizedProblem[]::new);
+						this.problems.put(Integer.toString(CategorizedProblem.CAT_UNSPECIFIED), newProblems); // TODO better category
+						if (this.astLevel != ICompilationUnit.NO_AST) {
+							this.ast = newAST;
+						}
+					} catch (AbortCompilationUnit ex) {
+						var problem = ex.problem; 
+						if (problem == null && ex.exception instanceof IOException ioEx) {
+							String path = source.getPath().toString();
+							String exceptionTrace = ioEx.getClass().getName() + ':' + ioEx.getMessage();
+							problem = new DefaultProblemFactory().createProblem(
+									path.toCharArray(),
+									IProblem.CannotReadSource,
+									new String[] { path, exceptionTrace },
+									new String[] { path, exceptionTrace },
+									ProblemSeverities.AbortCompilation | ProblemSeverities.Error | ProblemSeverities.Fatal,
+									0, 0, 1, 0);
+						}
+						this.problems.put(Integer.toString(CategorizedProblem.CAT_BUILDPATH),
+							new CategorizedProblem[] { problem });
 					}
 				} else {
 					CompilationUnitDeclaration unit = null; 
