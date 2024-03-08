@@ -27,6 +27,11 @@ import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.Signature;
 import org.eclipse.jdt.core.WorkingCopyOwner;
+import org.eclipse.jdt.core.dom.NodeFinder;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.internal.core.LambdaExpression;
 import org.eclipse.jdt.internal.core.LambdaMethod;
 
@@ -3124,6 +3129,41 @@ public void testBug546563() throws Exception {
 		"Unexpected elements",
 		"getOptionalValue() [in Test [in [Working copy] Test.java [in <default> [in src [in Resolve]]]]]",
 		elements
+	);
+}
+
+// Inspired from ReslveTests18.test0024
+public void test0024_BindingForLambdaMethod() throws JavaModelException {
+	this.wc = getWorkingCopy(
+			"/Resolve/src/X.java",
+			"interface I {\n" +
+			"	int foo(int a);\n" +
+			"}\n" +
+			"public class X {	\n" +
+			"	void foo() {\n" +
+			"		I i = (xyz) -> {\n" +
+			"			return xyz;\n" +
+			"		};\n" +
+			"	}\n" +
+			"}\n");
+
+	String str = this.wc.getSource();
+	String selection = "xyz";
+	int start = str.lastIndexOf(selection);
+	int length = selection.length();
+
+	ASTParser parser = ASTParser.newParser(AST.getJLSLatest());
+	parser.setSource(this.wc);
+	parser.setProject(this.wc.getJavaProject());
+	parser.setResolveBindings(true);
+	CompilationUnit dom = (CompilationUnit)parser.createAST(null);
+	Name variable = (Name)new NodeFinder(dom, start, length).getCoveredNode();
+	IJavaElement javaElement = variable.resolveBinding().getJavaElement();	
+
+	assertElementsEqual(
+		"Unexpected elements",
+		"xyz [in foo(int) [in <lambda #1> [in foo() [in X [in [Working copy] X.java [in <default> [in src [in Resolve]]]]]]]]",
+		new IJavaElement[] { javaElement }
 	);
 }
 }
