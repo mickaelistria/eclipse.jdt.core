@@ -668,7 +668,6 @@ class DOMToModelPopulator extends ASTVisitor {
 				break;
 			}
 		}
-
 		newInfo.setSourceRangeEnd(decl.getStartPosition() + decl.getLength() - 1);
 		newInfo.setHandle(newElement);
 		newInfo.setSourceRangeStart(decl.getStartPosition());
@@ -681,6 +680,7 @@ class DOMToModelPopulator extends ASTVisitor {
 					.map(Name::getFullyQualifiedName)
 					.forEach(this.currentTypeParameters::add);
 				Type type = constructorInvocation.getType();
+				newInfo.setSuperclassName(type.toString().toCharArray());
 				newInfo.setNameSourceStart(type.getStartPosition());
 				newInfo.setSourceRangeStart(constructorInvocation.getStartPosition());
 				int length;
