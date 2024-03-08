@@ -161,6 +161,18 @@ class DOMToModelPopulator extends ASTVisitor {
 			method.children = newElements;
 			return;
 		}
+		if (parentInfo instanceof SourceFieldWithChildrenInfo field) {
+			IJavaElement[] newElements = Arrays.copyOf(field.children, field.children.length + 1);
+			newElements[newElements.length - 1] = childElement;
+			field.children = newElements;
+			return;
+		}
+		if (parentInfo instanceof SourceConstructorWithChildrenInfo constructor) {
+			IJavaElement[] newElements = Arrays.copyOf(constructor.children, constructor.children.length + 1);
+			newElements[newElements.length - 1] = childElement;
+			constructor.children = newElements;
+			return;
+		}
 		if (parentInfo instanceof InitializerWithChildrenInfo info) {
 			IJavaElement[] newElements = Arrays.copyOf(info.getChildren(), info.getChildren().length + 1);
 			newElements[newElements.length - 1] = childElement;
@@ -378,7 +390,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		SourceField newElement = new SourceField(this.elements.peek(), node.getName().toString());
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
-		SourceFieldElementInfo info = new SourceFieldElementInfo();
+		SourceFieldWithChildrenInfo info = new SourceFieldWithChildrenInfo(new IJavaElement[0]);
 		info.setTypeName(parent.getElementName().toCharArray());
 		info.setSourceRangeStart(node.getStartPosition());
 		info.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
@@ -481,7 +493,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		SourceMethodElementInfo info = method.isConstructor() ?
-			new SourceConstructorInfo() :
+			new SourceConstructorWithChildrenInfo(new IJavaElement[0]) :
 			new SourceMethodWithChildrenInfo(new IJavaElement[0]);
 		info.setArgumentNames(parameters.stream().map(param -> param.getName().toString().toCharArray()).toArray(char[][]::new));
 		info.arguments = parameters.stream().map(this::toLocalVariable).toArray(LocalVariable[]::new);
@@ -861,7 +873,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			SourceField newElement = new SourceField(parentElement, fragment.getName().toString());
 			this.elements.push(newElement);
 			addAsChild(parentInfo, newElement);
-			SourceFieldElementInfo info = new SourceFieldElementInfo();
+			SourceFieldWithChildrenInfo info = new SourceFieldWithChildrenInfo(new IJavaElement[0]);
 			info.setTypeName(field.getType().toString().toCharArray());
 			info.setSourceRangeStart(field.getStartPosition());
 			info.setSourceRangeEnd(field.getStartPosition() + field.getLength() - 1);
