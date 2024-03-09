@@ -180,7 +180,10 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 		astParser.setWorkingCopyOwner(getOwner());
 		astParser.setSource(this instanceof ClassFileWorkingCopy ? source : this);
 		astParser.setProject(getJavaProject());
-		astParser.setStatementsRecovery((reconcileFlags & ICompilationUnit.ENABLE_STATEMENTS_RECOVERY) != 0);
+		// Next one should be (reconcileFlags & ICompilationUnit.ENABLE_STATEMENTS_RECOVERY) != 0,
+		// but we want to set `setMethodsFullRecovery(true)` and there is currently no entry point
+		// for that in ASTParser, so let's force statementsRecovery, which imply methodsFullRecovery
+		astParser.setStatementsRecovery(true);
 		astParser.setResolveBindings(computeProblems || resolveBindings);
 		astParser.setBindingsRecovery((reconcileFlags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0);
 		astParser.setIgnoreMethodBodies((reconcileFlags & ICompilationUnit.IGNORE_METHOD_BODIES) != 0);
