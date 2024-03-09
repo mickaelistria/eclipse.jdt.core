@@ -395,7 +395,7 @@ class CompilationUnitResolver extends Compiler {
 
 	protected static CompilerOptions getCompilerOptions(Map options, boolean statementsRecovery) {
 		CompilerOptions compilerOptions = new CompilerOptions(options);
-		compilerOptions.performMethodsFullRecovery = statementsRecovery;
+		compilerOptions.performMethodsFullRecovery = true;
 		compilerOptions.performStatementsRecovery = statementsRecovery;
 		compilerOptions.parseLiteralExpressionsAsConstants = false;
 		compilerOptions.storeAnnotations = true /*store annotations in the bindings*/;
