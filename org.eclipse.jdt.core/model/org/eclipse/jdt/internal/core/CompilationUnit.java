@@ -539,72 +539,81 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 			finder.getCoveredNode() :
 			finder.getCoveringNode();
 		IBinding binding = resolveBinding(node);
-		if (binding != null) {
-			IJavaElement element = binding.getJavaElement();
-			if (element == null && binding instanceof ITypeBinding typeBinding) {
+		List<IBinding> bindingsToConsider = binding == null ? List.of() :
+			binding instanceof ITypeBinding typeBinding && typeBinding.isIntersectionType() ?
+				Arrays.asList(typeBinding.getTypeBounds()) :
+				List.of(binding);
+		List<IJavaElement> res = new ArrayList<>();
+		IJavaSearchScope scope = null;
+		BasicSearchEngine searchEngine = null;
+		for (IBinding currentBinding : bindingsToConsider) {
+			IJavaElement element = currentBinding.getJavaElement();
+			if (element != null) {
+				res.add(element);
+			} else if (currentBinding instanceof ITypeBinding currentType) {
 				// fallback to calling index, inspired/copied from SelectionEngine
-				List<IType> indexMatch = new ArrayList<>();
 				TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
 					@Override
 					public void acceptTypeNameMatch(org.eclipse.jdt.core.search.TypeNameMatch match) {
-						indexMatch.add(match.getType());
+						res.add(match.getType());
 					}
 				};
-				IJavaSearchScope scope = BasicSearchEngine.createWorkspaceScope();
-				new BasicSearchEngine(getOwner()).searchAllTypeNames(
-					typeBinding.getPackage() != null ? typeBinding.getPackage().getName().toCharArray() : null,
+				if (scope == null) {
+					scope = BasicSearchEngine.createWorkspaceScope();
+					searchEngine = new BasicSearchEngine(getOwner());
+				}
+				searchEngine.searchAllTypeNames(
+					currentType.getPackage() != null ? currentType.getPackage().getName().toCharArray() : null,
 					SearchPattern.R_EXACT_MATCH,
-					typeBinding.getName().toCharArray(),
+					currentType.getName().toCharArray(),
 					SearchPattern.R_EXACT_MATCH | SearchPattern.R_CASE_SENSITIVE,
 					IJavaSearchConstants.TYPE,
 					scope,
 					new TypeNameMatchRequestorWrapper(requestor, scope),
 					IJavaSearchConstants.CANCEL_IF_NOT_READY_TO_SEARCH,
 					new NullProgressMonitor());
-				if (!indexMatch.isEmpty()) {
-					return indexMatch.toArray(IJavaElement[]::new);
-				}
-			}
-			if (element != null) {
-				return new IJavaElement[] { element };
 			}
 		}
-		// fallback: crawl the children of this unit
-		IJavaElement currentElement = this;
-		boolean newChildFound;
-		int finalOffset = offset;
-		int finalLength = length;
-		do {
-			newChildFound = false;
-			if (currentElement instanceof IParent parentElement) {
-				Optional<IJavaElement> candidate = Stream.of(parentElement.getChildren())
-					.filter(ISourceReference.class::isInstance)
-					.map(ISourceReference.class::cast)
-					.filter(sourceRef -> {
-						try {
-							ISourceRange elementRange = sourceRef.getSourceRange();
-							return elementRange != null
-								&& elementRange.getOffset() >= 0
-								&& elementRange.getOffset() <= finalOffset
-								&& elementRange.getOffset() + elementRange.getLength() >= finalOffset + finalLength;
-						} catch (JavaModelException e) {
-							return false;
-						}
-					}).map(IJavaElement.class::cast)
-					.findAny();
-				if (candidate.isPresent()) {
-					newChildFound = true;
-					currentElement = candidate.get();
+		if (res.isEmpty()) {
+			// fallback: crawl the children of this unit
+			// maybe just reuse `getElementAt`?
+			IJavaElement currentElement = this;
+			boolean newChildFound;
+			int finalOffset = offset;
+			int finalLength = length;
+			do {
+				newChildFound = false;
+				if (currentElement instanceof IParent parentElement) {
+					Optional<IJavaElement> candidate = Stream.of(parentElement.getChildren())
+						.filter(ISourceReference.class::isInstance)
+						.map(ISourceReference.class::cast)
+						.filter(sourceRef -> {
+							try {
+								ISourceRange elementRange = sourceRef.getSourceRange();
+								return elementRange != null
+									&& elementRange.getOffset() >= 0
+									&& elementRange.getOffset() <= finalOffset
+									&& elementRange.getOffset() + elementRange.getLength() >= finalOffset + finalLength;
+							} catch (JavaModelException e) {
+								return false;
+							}
+						}).map(IJavaElement.class::cast)
+						.findAny();
+					if (candidate.isPresent()) {
+						newChildFound = true;
+						currentElement = candidate.get();
+					}
 				}
+			} while (newChildFound);
+			if (currentElement instanceof JavaElement impl &&
+					impl.getElementInfo() instanceof AnnotatableInfo annotable &&
+					annotable.getNameSourceStart() >= 0 &&
+					annotable.getNameSourceStart() <= offset &&
+					annotable.getNameSourceEnd() >= offset) {
+				res.add(currentElement);			
 			}
-		} while (newChildFound);
-		return currentElement instanceof JavaElement impl &&
-				impl.getElementInfo() instanceof AnnotatableInfo annotable &&
-				annotable.getNameSourceStart() >= 0 &&
-				annotable.getNameSourceStart() <= offset &&
-				annotable.getNameSourceEnd() >= offset ?
-			new IJavaElement[] { currentElement } :
-			new IJavaElement[0];
+		}
+		return res.toArray(IJavaElement[]::new);
 	} else {
 		return super.codeSelect(this, offset, length, workingCopyOwner);
 	}
