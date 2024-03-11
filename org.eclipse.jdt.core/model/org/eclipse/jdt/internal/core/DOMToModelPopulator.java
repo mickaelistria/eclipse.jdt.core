@@ -419,6 +419,8 @@ class DOMToModelPopulator extends ASTVisitor {
 		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
 		char[][] categories = getCategories(node);
 		newInfo.addCategories(newElement, categories);
+		newInfo.setSuperclassName(Record.class.getName().toCharArray());
+		newInfo.setSuperInterfaceNames(((List<Type>)node.superInterfaceTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
 		JavaElementInfo toPopulateCategories = this.infos.peek();
 		while (toPopulateCategories != null) {
 			if (toPopulateCategories instanceof SourceTypeElementInfo parentTypeInfo) {
