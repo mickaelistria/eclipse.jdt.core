@@ -193,8 +193,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		AnnotatableInfo newInfo = new AnnotatableInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
 		this.infos.push(newInfo);
@@ -220,8 +219,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.importContainerInfo, newElement);
 		ImportDeclarationElementInfo newInfo = new ImportDeclarationElementInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		int nameSourceEnd = node.getName().getStartPosition() + node.getName().getLength() - 1;
 		if (node.isOnDemand()) {
@@ -289,8 +287,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		if (node.getAST().apiLevel() >= AST.JLS17) {
 			newInfo.setPermittedSubtypeNames(((List<Type>)node.permittedTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
 		}
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.setFlags(node.getModifiers()
 			| (isDeprecated ? ClassFileConstants.AccDeprecated : 0)
 			| (node.isInterface() ? Flags.AccInterface : 0));
@@ -321,8 +318,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		SourceTypeElementInfo newInfo = new SourceTypeElementInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		char[][] categories = getCategories(node);
 		newInfo.addCategories(newElement, categories);
 		JavaElementInfo toPopulateCategories = this.infos.peek();
@@ -356,8 +352,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		SourceTypeElementInfo newInfo = new SourceTypeElementInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		char[][] categories = getCategories(node);
 		newInfo.addCategories(newElement, categories);
 		JavaElementInfo toPopulateCategories = this.infos.peek();
@@ -392,8 +387,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		addAsChild(this.infos.peek(), newElement);
 		SourceFieldWithChildrenInfo info = new SourceFieldWithChildrenInfo(new IJavaElement[0]);
 		info.setTypeName(parent.getElementName().toCharArray());
-		info.setSourceRangeStart(node.getStartPosition());
-		info.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(info, node);
 		boolean isDeprecated = isNodeDeprecated(node);
 		info.setFlags(node.getModifiers() | ClassFileConstants.AccEnum | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
 		info.setNameSourceStart(node.getName().getStartPosition());
@@ -415,8 +409,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		SourceTypeElementInfo newInfo = new SourceTypeElementInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		char[][] categories = getCategories(node);
 		newInfo.addCategories(newElement, categories);
 		newInfo.setSuperclassName(Record.class.getName().toCharArray());
@@ -452,8 +445,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			this.elements.push(newElement);
 			addAsChild(this.infos.peek(), newElement);
 			SourceFieldElementInfo newInfo = new SourceFieldElementInfo();
-			newInfo.setSourceRangeStart(node.getStartPosition());
-			newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+			setSourceRange(newInfo, node);
 			newInfo.setNameSourceStart(node.getName().getStartPosition());
 			newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
 			newInfo.setTypeName(node.getType().toString().toCharArray());
@@ -512,8 +504,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		if (method.getAST().apiLevel() >= AST.JLS8) {
 			info.setExceptionTypeNames(((List<Type>)method.thrownExceptionTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
 		}
-		info.setSourceRangeStart(method.getStartPosition());
-		info.setSourceRangeEnd(method.getStartPosition() + method.getLength() - 1);
+		setSourceRange(info, method);
 		boolean isDeprecated = isNodeDeprecated(method);
 		info.setFlags(method.getModifiers()
 			| (isDeprecated ? ClassFileConstants.AccDeprecated : 0)
@@ -546,8 +537,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		addAsChild(this.infos.peek(), newElement);
 		SourceAnnotationMethodInfo info = new SourceAnnotationMethodInfo();
 		info.setReturnType(method.getType().toString().toCharArray());
-		info.setSourceRangeStart(method.getStartPosition());
-		info.setSourceRangeEnd(method.getStartPosition() + method.getLength() - 1);
+		setSourceRange(info, method);
 		((SourceTypeElementInfo)this.infos.peek()).addCategories(newElement, getCategories(method));
 		boolean isDeprecated = isNodeDeprecated(method);
 		info.setFlags(method.getModifiers() | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
@@ -577,8 +567,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		TypeParameterElementInfo info = new TypeParameterElementInfo();
-		info.setSourceRangeStart(node.getStartPosition());
-		info.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(info, node);
 		info.nameStart = node.getName().getStartPosition();
 		info.nameEnd = node.getName().getStartPosition() + node.getName().getLength() - 1;
 		info.bounds = ((List<Type>)node.typeBounds()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new);
@@ -599,8 +588,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		AnnotationInfo newInfo = new AnnotationInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.nameStart = node.getTypeName().getStartPosition();
 		newInfo.nameEnd = node.getTypeName().getStartPosition() + node.getTypeName().getLength() - 1;
 		newInfo.members = ((List<org.eclipse.jdt.core.dom.MemberValuePair>)node.values())
@@ -626,8 +614,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		AnnotationInfo newInfo = new AnnotationInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.nameStart = node.getTypeName().getStartPosition();
 		newInfo.nameEnd = node.getTypeName().getStartPosition() + node.getTypeName().getLength() - 1;
 		newInfo.members = new IMemberValuePair[0];
@@ -647,8 +634,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		AnnotationInfo newInfo = new AnnotationInfo();
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.nameStart = node.getTypeName().getStartPosition();
 		newInfo.nameEnd = node.getTypeName().getStartPosition() + node.getTypeName().getLength() - 1;
 		Entry<Object, Integer> value = memberValue(node.getValue());
@@ -684,8 +670,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		}
 		newInfo.setSourceRangeEnd(decl.getStartPosition() + decl.getLength() - 1);
 		newInfo.setHandle(newElement);
-		newInfo.setSourceRangeStart(decl.getStartPosition());
-		newInfo.setSourceRangeEnd(decl.getStartPosition() + decl.getLength() - 1);
+		setSourceRange(newInfo, decl);
 		if (decl.getParent() instanceof ClassInstanceCreation constructorInvocation) {
 			if (constructorInvocation.getAST().apiLevel() > 2) {
 				((List<SimpleType>)constructorInvocation.typeArguments())
@@ -696,6 +681,7 @@ class DOMToModelPopulator extends ASTVisitor {
 				Type type = constructorInvocation.getType();
 				newInfo.setSuperclassName(type.toString().toCharArray());
 				newInfo.setNameSourceStart(type.getStartPosition());
+				// TODO consider leading comments just like in setSourceRange(newInfo, node);
 				newInfo.setSourceRangeStart(constructorInvocation.getStartPosition());
 				int length;
 				if (type instanceof ParameterizedType pType) {
@@ -877,8 +863,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			addAsChild(parentInfo, newElement);
 			SourceFieldWithChildrenInfo info = new SourceFieldWithChildrenInfo(new IJavaElement[0]);
 			info.setTypeName(field.getType().toString().toCharArray());
-			info.setSourceRangeStart(field.getStartPosition());
-			info.setSourceRangeEnd(field.getStartPosition() + field.getLength() - 1);
+			setSourceRange(info, field);
 			if (parentInfo instanceof SourceTypeElementInfo parentTypeInfo) {
 				parentTypeInfo.addCategories(newElement, categories);
 			}
@@ -921,8 +906,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
 		InitializerElementInfo newInfo = new InitializerWithChildrenInfo(new IJavaElement[0]);
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.setFlags(node.getModifiers());
 		this.infos.push(newInfo);
 		this.toPopulate.put(newElement, newInfo);
@@ -950,8 +934,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		newInfo.name = node.getName().toString().toCharArray();
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
-		newInfo.setSourceRangeStart(node.getStartPosition());
-		newInfo.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(newInfo, node);
 		newInfo.setFlags(node.getFlags());
 		List<?> moduleStatements = node.moduleStatements();
 		newInfo.requires = moduleStatements.stream()
@@ -995,16 +978,14 @@ class DOMToModelPopulator extends ASTVisitor {
 		ModuleReferenceInfo res = new ModuleReferenceInfo();
 		res.modifiers = node.getModifiers();
 		res.name = node.getName().toString().toCharArray();
-		res.setSourceRangeStart(node.getStartPosition());
-		res.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(res, node);
 		return res;
 	}
 	private PackageExportInfo toPackageExportInfo(ASTNode node, Name name, int flags) {
 		PackageExportInfo res = new PackageExportInfo();
 		res.flags = flags;
 		res.pack = name.toString().toCharArray();
-		res.setSourceRangeStart(node.getStartPosition());
-		res.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(res, node);
 		return res;
 	}
 	private ServiceInfo toServiceInfo(ProvidesDirective node) {
@@ -1012,8 +993,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		res.flags = node.getFlags();
 		res.serviceName = node.getName().toString().toCharArray();
 		res.implNames = ((List<Name>)node.implementations()).stream().map(Name::toString).map(String::toCharArray).toArray(char[][]::new);
-		res.setSourceRangeStart(node.getStartPosition());
-		res.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		setSourceRange(res, node);
 		return res;
 	}
 	private boolean isNodeDeprecated(BodyDeclaration node) {
@@ -1101,5 +1081,17 @@ class DOMToModelPopulator extends ASTVisitor {
 			node = node.getParent();
 		}
 		return (org.eclipse.jdt.core.dom.CompilationUnit)node;
+	}
+
+	private static void setSourceRange(SourceRefElementInfo info, ASTNode node) {
+		int start = node.getStartPosition();
+		var unit = domUnit(node);
+		int index = unit.firstLeadingCommentIndex(node);
+		if (index >= 0 && index <= unit.getCommentList().size()) {
+			Comment comment = (Comment)unit.getCommentList().get(index);
+			start = comment.getStartPosition();
+		}
+		info.setSourceRangeStart(start);
+		info.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
 	}
 }
