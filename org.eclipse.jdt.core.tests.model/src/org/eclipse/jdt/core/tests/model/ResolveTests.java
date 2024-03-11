@@ -1467,7 +1467,7 @@ public void testDuplicateLocals1() throws JavaModelException {
 		);
 
 	assertTrue("Unexpected type",
-		Set.of("QTestString;", "Ltest.TestString;)").contains(
+		Set.of("QTestString;", "Ltest.TestString;").contains(
 		((ILocalVariable)elements[0]).getTypeSignature()));
 	assertFalse(((ILocalVariable)elements[0]).isParameter());
 }
