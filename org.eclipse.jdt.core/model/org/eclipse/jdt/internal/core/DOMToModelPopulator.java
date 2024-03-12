@@ -49,6 +49,7 @@ import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.ExportsDirective;
 import org.eclipse.jdt.core.dom.Expression;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
+import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.Initializer;
 import org.eclipse.jdt.core.dom.MarkerAnnotation;
@@ -122,9 +123,11 @@ class DOMToModelPopulator extends ASTVisitor {
 			}
 		}
 		if (parentInfo instanceof AnnotatableInfo annotable && childElement instanceof IAnnotation annotation) {
-			IAnnotation[] newAnnotations = Arrays.copyOf(annotable.annotations, annotable.annotations.length + 1);
-			newAnnotations[newAnnotations.length - 1] = annotation;
-			annotable.annotations = newAnnotations;
+			if (Stream.of(annotable.annotations).noneMatch(annotation::equals)) {
+				IAnnotation[] newAnnotations = Arrays.copyOf(annotable.annotations, annotable.annotations.length + 1);
+				newAnnotations[newAnnotations.length - 1] = annotation;
+				annotable.annotations = newAnnotations;
+			}
 			return;
 		}
 		if (childElement instanceof TypeParameter typeParam) {
@@ -743,7 +746,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			return new SimpleEntry<>(qualifiedName.toString(), IMemberValuePair.K_QUALIFIED_NAME);
 		}
 		if (dom instanceof org.eclipse.jdt.core.dom.Annotation annotation) {
-			return new SimpleEntry<>(toModelAnnotation(annotation), IMemberValuePair.K_ANNOTATION);
+			return new SimpleEntry<>(toModelAnnotation(annotation, null), IMemberValuePair.K_ANNOTATION);
 		}
 		if (dom instanceof ArrayInitializer arrayInitializer) {
 			var values = ((List<Expression>)arrayInitializer.expressions()).stream().map(this::memberValue).toList();
@@ -818,7 +821,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		}
 	}
 
-	private Annotation toModelAnnotation(org.eclipse.jdt.core.dom.Annotation domAnnotation) {
+	private Annotation toModelAnnotation(org.eclipse.jdt.core.dom.Annotation domAnnotation, JavaElement parent) {
 		IMemberValuePair[] members;
 		if (domAnnotation instanceof NormalAnnotation normalAnnotation) {
 			members = ((List<MemberValuePair>)normalAnnotation.values()).stream().map(domMemberValuePair -> {
@@ -831,7 +834,8 @@ class DOMToModelPopulator extends ASTVisitor {
 		} else {
 			members = new IMemberValuePair[0];
 		}
-		return new Annotation(null, domAnnotation.getTypeName().toString()) {
+		
+		return new Annotation(parent, domAnnotation.getTypeName().toString()) {
 			@Override
 			public IMemberValuePair[] getMemberValuePairs() {
 				return members;
@@ -842,12 +846,12 @@ class DOMToModelPopulator extends ASTVisitor {
 	private LocalVariable toLocalVariable(SingleVariableDeclaration parameter) {
 		return new LocalVariable(this.elements.peek(),
 				parameter.getName().getIdentifier(),
-				parameter.getStartPosition(),
+				getStartConsideringLeadingComments(parameter),
 				parameter.getStartPosition() + parameter.getLength() - 1,
 				parameter.getName().getStartPosition(),
 				parameter.getName().getStartPosition() + parameter.getName().getLength() - 1,
 				Util.getSignature(parameter.getType()),
-				null, // TODO
+				null, // should be populated while navigating children
 				parameter.getFlags(),
 				parameter.getParent() instanceof MethodDeclaration);
 	}
@@ -877,9 +881,17 @@ class DOMToModelPopulator extends ASTVisitor {
 			 	&& initializer != null && initializer.getStartPosition() >= 0) {
 				info.initializationSource = Arrays.copyOfRange(this.root.getContents(), initializer.getStartPosition(), initializer.getStartPosition() + initializer.getLength());
 			}
-			// TODO populate info
 			this.infos.push(info);
 			this.toPopulate.put(newElement, info);
+			if (field.getAST().apiLevel() >= AST.JLS3) {
+				List<IExtendedModifier> modifiers = field.modifiers();
+				if (modifiers != null) {
+					modifiers.stream()
+						.filter(org.eclipse.jdt.core.dom.Annotation.class::isInstance)
+						.map(org.eclipse.jdt.core.dom.Annotation.class::cast)
+						.forEach(annotation -> annotation.accept(this)); // force processing of annotation on each fragment
+				}
+			}
 		}
 		return true;
 	}
@@ -1085,6 +1097,11 @@ class DOMToModelPopulator extends ASTVisitor {
 	}
 
 	private static void setSourceRange(SourceRefElementInfo info, ASTNode node) {
+		info.setSourceRangeStart(getStartConsideringLeadingComments(node));
+		info.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+	}
+
+	private static int getStartConsideringLeadingComments(ASTNode node) {
 		int start = node.getStartPosition();
 		var unit = domUnit(node);
 		int index = unit.firstLeadingCommentIndex(node);
@@ -1092,7 +1109,6 @@ class DOMToModelPopulator extends ASTVisitor {
 			Comment comment = (Comment)unit.getCommentList().get(index);
 			start = comment.getStartPosition();
 		}
-		info.setSourceRangeStart(start);
-		info.setSourceRangeEnd(node.getStartPosition() + node.getLength() - 1);
+		return start;
 	}
 }
