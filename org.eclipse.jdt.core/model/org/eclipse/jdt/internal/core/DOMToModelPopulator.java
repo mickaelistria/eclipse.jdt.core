@@ -494,7 +494,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			new SourceConstructorWithChildrenInfo(new IJavaElement[0]) :
 			new SourceMethodWithChildrenInfo(new IJavaElement[0]);
 		info.setArgumentNames(parameters.stream().map(param -> param.getName().toString().toCharArray()).toArray(char[][]::new));
-		info.arguments = parameters.stream().map(this::toLocalVariable).toArray(LocalVariable[]::new);
+		info.arguments = parameters.stream().map(param -> toLocalVariable(param, newElement)).toArray(LocalVariable[]::new);
 		if (method.getAST().apiLevel() > 2) {
 			if (method.getReturnType2() != null) {
 				info.setReturnType(method.getReturnType2().toString().toCharArray());
@@ -843,8 +843,8 @@ class DOMToModelPopulator extends ASTVisitor {
 		};
 	}
 
-	private LocalVariable toLocalVariable(SingleVariableDeclaration parameter) {
-		return new LocalVariable(this.elements.peek(),
+	static LocalVariable toLocalVariable(SingleVariableDeclaration parameter, JavaElement parent) {
+		return new LocalVariable(parent,
 				parameter.getName().getIdentifier(),
 				getStartConsideringLeadingComments(parameter),
 				parameter.getStartPosition() + parameter.getLength() - 1,

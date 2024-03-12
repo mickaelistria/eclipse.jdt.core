@@ -44,6 +44,7 @@ import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NodeFinder;
 import org.eclipse.jdt.core.dom.ParameterizedType;
 import org.eclipse.jdt.core.dom.SimpleType;
+import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
@@ -563,7 +564,9 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 			IBinding binding = resolveBinding(node);
 			if (binding != null) {
 				IJavaElement element = binding.getJavaElement();
-				if (element == null && binding instanceof ITypeBinding typeBinding) {
+				if (element != null) {
+					return new IJavaElement[] { element };
+				} else if (binding instanceof ITypeBinding typeBinding) {
 					// fallback to calling index, inspired/copied from SelectionEngine
 					List<IType> indexMatch = new ArrayList<>();
 					TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
@@ -587,8 +590,12 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 						return indexMatch.toArray(IJavaElement[]::new);
 					}
 				}
-				if (element != null) {
-					return new IJavaElement[] { element };
+				ASTNode bindingNode = currentAST.findDeclaringNode(binding);
+				if (bindingNode != null) {
+					IJavaElement parent = getElementAt(bindingNode.getStartPosition());
+					if (parent != null && bindingNode instanceof SingleVariableDeclaration variableDecl) {
+						return new IJavaElement[] { DOMToModelPopulator.toLocalVariable(variableDecl, (JavaElement)parent) };
+					}
 				}
 			}
 		}
