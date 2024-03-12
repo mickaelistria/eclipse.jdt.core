@@ -243,6 +243,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			} while (changed);
 		}
 		newInfo.setNameSourceEnd(nameSourceEnd);
+		newInfo.setFlags(node.isStatic() ? Flags.AccStatic : 0);
 		this.infos.push(newInfo);
 		this.toPopulate.put(newElement, newInfo);
 		return true;
