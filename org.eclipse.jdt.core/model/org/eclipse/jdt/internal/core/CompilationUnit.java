@@ -37,6 +37,7 @@ import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.MethodReference;
@@ -588,6 +589,14 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 						new NullProgressMonitor());
 					if (!indexMatch.isEmpty()) {
 						return indexMatch.toArray(IJavaElement[]::new);
+					}
+				} else if (binding instanceof IVariableBinding variableBinding && variableBinding.getDeclaringMethod() != null && variableBinding.getDeclaringMethod().isCompactConstructor()) {
+					// workaround for JavaSearchBugs15Tests.testBug558812_012
+					if (variableBinding.getDeclaringMethod().getJavaElement() instanceof IMethod method) {
+						Optional<ILocalVariable> parameter = Arrays.stream(method.getParameters()).filter(param -> Objects.equals(param.getElementName(), variableBinding.getName())).findAny();
+						if (parameter.isPresent()) {
+							return new IJavaElement[] { parameter.get() };
+						}
 					}
 				}
 				ASTNode bindingNode = currentAST.findDeclaringNode(binding);
