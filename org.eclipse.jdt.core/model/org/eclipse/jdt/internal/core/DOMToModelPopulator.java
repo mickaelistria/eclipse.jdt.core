@@ -373,6 +373,8 @@ class DOMToModelPopulator extends ASTVisitor {
 		newInfo.setHandle(newElement);
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
+		newInfo.setSuperclassName(Enum.class.getName().toCharArray());
+		newInfo.setSuperInterfaceNames(((List<Type>)node.superInterfaceTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
 		this.infos.push(newInfo);
 		this.toPopulate.put(newElement, newInfo);
 		return true;
