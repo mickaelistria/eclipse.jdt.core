@@ -55,6 +55,7 @@ import org.eclipse.jdt.core.dom.Initializer;
 import org.eclipse.jdt.core.dom.MarkerAnnotation;
 import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.ModuleDeclaration;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
@@ -292,9 +293,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			newInfo.setPermittedSubtypeNames(((List<Type>)node.permittedTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
 		}
 		setSourceRange(newInfo, node);
-		newInfo.setFlags(node.getModifiers()
-			| (isDeprecated ? ClassFileConstants.AccDeprecated : 0)
-			| (node.isInterface() ? Flags.AccInterface : 0));
+		newInfo.setFlags(toModelFlags(node.getModifiers(), isDeprecated) | (node.isInterface() ? Flags.AccInterface : 0));
 
 		newInfo.setHandle(newElement);
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
@@ -335,7 +334,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			}
 		}
 		boolean isDeprecated = isNodeDeprecated(node);
-		newInfo.setFlags(node.getModifiers() | ClassFileConstants.AccInterface|Flags.AccAnnotation | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
+		newInfo.setFlags(toModelFlags(node.getModifiers(), isDeprecated) | Flags.AccInterface | Flags.AccAnnotation);
 		newInfo.setHandle(newElement);
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
@@ -369,11 +368,10 @@ class DOMToModelPopulator extends ASTVisitor {
 			}
 		}
 		boolean isDeprecated = isNodeDeprecated(node);
-		newInfo.setFlags(node.getModifiers() | Flags.AccEnum | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
+		newInfo.setFlags(toModelFlags(node.getModifiers(), isDeprecated) | Flags.AccEnum);
 		newInfo.setHandle(newElement);
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
-		newInfo.setSuperclassName(Enum.class.getName().toCharArray());
 		newInfo.setSuperInterfaceNames(((List<Type>)node.superInterfaceTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
 		this.infos.push(newInfo);
 		this.toPopulate.put(newElement, newInfo);
@@ -395,7 +393,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		info.setTypeName(parent.getElementName().toCharArray());
 		setSourceRange(info, node);
 		boolean isDeprecated = isNodeDeprecated(node);
-		info.setFlags(node.getModifiers() | ClassFileConstants.AccEnum | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
+		info.setFlags(toModelFlags(node.getModifiers(), isDeprecated) | ClassFileConstants.AccEnum);
 		info.setNameSourceStart(node.getName().getStartPosition());
 		info.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
 		// TODO populate info
@@ -430,7 +428,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			}
 		}
 		boolean isDeprecated = isNodeDeprecated(node);
-		newInfo.setFlags(node.getModifiers() | Flags.AccRecord | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
+		newInfo.setFlags(toModelFlags(node.getModifiers(), isDeprecated) | Flags.AccRecord);
 		newInfo.setHandle(newElement);
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
@@ -512,8 +510,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		}
 		setSourceRange(info, method);
 		boolean isDeprecated = isNodeDeprecated(method);
-		info.setFlags(method.getModifiers()
-			| (isDeprecated ? ClassFileConstants.AccDeprecated : 0)
+		info.setFlags(toModelFlags(method.getModifiers(), isDeprecated)
 			| ((method.getAST().apiLevel() > AST.JLS2 && ((List<SingleVariableDeclaration>)method.parameters()).stream().anyMatch(SingleVariableDeclaration::isVarargs)) ? Flags.AccVarargs : 0));
 		info.setNameSourceStart(method.getName().getStartPosition());
 		info.setNameSourceEnd(method.getName().getStartPosition() + method.getName().getLength() - 1);
@@ -546,7 +543,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		setSourceRange(info, method);
 		((SourceTypeElementInfo)this.infos.peek()).addCategories(newElement, getCategories(method));
 		boolean isDeprecated = isNodeDeprecated(method);
-		info.setFlags(method.getModifiers() | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
+		info.setFlags(toModelFlags(method.getModifiers(), isDeprecated));
 		info.setNameSourceStart(method.getName().getStartPosition());
 		info.setNameSourceEnd(method.getName().getStartPosition() + method.getName().getLength() - 1);
 		Expression defaultExpr = method.getDefault();
@@ -874,7 +871,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			if (parentInfo instanceof SourceTypeElementInfo parentTypeInfo) {
 				parentTypeInfo.addCategories(newElement, categories);
 			}
-			info.setFlags(field.getModifiers() | (isDeprecated ? ClassFileConstants.AccDeprecated : 0));
+			info.setFlags(toModelFlags(field.getModifiers(), isDeprecated));
 			info.setNameSourceStart(fragment.getName().getStartPosition());
 			info.setNameSourceEnd(fragment.getName().getStartPosition() + fragment.getName().getLength() - 1);
 			Expression initializer = fragment.getInitializer();
@@ -922,7 +919,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		addAsChild(this.infos.peek(), newElement);
 		InitializerElementInfo newInfo = new InitializerWithChildrenInfo(new IJavaElement[0]);
 		setSourceRange(newInfo, node);
-		newInfo.setFlags(node.getModifiers());
+		newInfo.setFlags(toModelFlags(node.getModifiers(), false));
 		this.infos.push(newInfo);
 		this.toPopulate.put(newElement, newInfo);
 		return true;
@@ -950,7 +947,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
 		setSourceRange(newInfo, node);
-		newInfo.setFlags(node.getFlags());
+		newInfo.setFlags(Flags.AccModule);
 		List<?> moduleStatements = node.moduleStatements();
 		newInfo.requires = moduleStatements.stream()
 			.filter(RequiresDirective.class::isInstance)
@@ -1112,5 +1109,25 @@ class DOMToModelPopulator extends ASTVisitor {
 			start = comment.getStartPosition();
 		}
 		return start;
+	}
+
+	private static int toModelFlags(int domModifiers, boolean isDeprecated) {
+		int res = 0;
+		if (Modifier.isAbstract(domModifiers)) res |= Flags.AccAbstract;
+		if (Modifier.isDefault(domModifiers)) res |= Flags.AccDefaultMethod;
+		if (Modifier.isFinal(domModifiers)) res |= Flags.AccFinal;
+		if (Modifier.isNative(domModifiers)) res |= Flags.AccNative;
+		if (Modifier.isNonSealed(domModifiers)) res |= Flags.AccNonSealed;
+		if (Modifier.isPrivate(domModifiers)) res |= Flags.AccPrivate;
+		if (Modifier.isProtected(domModifiers)) res |= Flags.AccProtected;
+		if (Modifier.isPublic(domModifiers)) res |= Flags.AccPublic;
+		if (Modifier.isSealed(domModifiers)) res |= Flags.AccSealed;
+		if (Modifier.isStatic(domModifiers)) res |= Flags.AccStatic;
+		if (Modifier.isStrictfp(domModifiers)) res |= Flags.AccStrictfp;
+		if (Modifier.isSynchronized(domModifiers)) res |= Flags.AccSynchronized;
+		if (Modifier.isTransient(domModifiers)) res |= Flags.AccTransient;
+		if (Modifier.isVolatile(domModifiers)) res |= Flags.AccVolatile;
+		if (isDeprecated) res |= Flags.AccDeprecated;
+		return res;
 	}
 }
