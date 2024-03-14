@@ -14,6 +14,7 @@ import java.util.AbstractMap.SimpleEntry;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -57,6 +58,8 @@ import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.ModuleDeclaration;
+import org.eclipse.jdt.core.dom.ModuleModifier;
+import org.eclipse.jdt.core.dom.ModulePackageAccess;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NormalAnnotation;
 import org.eclipse.jdt.core.dom.NullLiteral;
@@ -82,6 +85,7 @@ import org.eclipse.jdt.core.dom.UsesDirective;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.env.IElementInfo;
+import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 import org.eclipse.jdt.internal.compiler.parser.RecoveryScanner;
 import org.eclipse.jdt.internal.compiler.parser.Scanner;
 import org.eclipse.jdt.internal.compiler.parser.TerminalTokens;
@@ -935,34 +939,33 @@ class DOMToModelPopulator extends ASTVisitor {
 		SourceModule newElement = new SourceModule(this.elements.peek(), node.getName().toString());
 		this.elements.push(newElement);
 		addAsChild(this.infos.peek(), newElement);
-		this.unitInfo.setModule(newElement);
-		try {
-			this.root.getJavaProject().setModuleDescription(newElement);
-		} catch (JavaModelException e) {
-			ILog.get().error(e.getMessage(), e);
-		}
 		ModuleDescriptionInfo newInfo = new ModuleDescriptionInfo();
 		newInfo.setHandle(newElement);
 		newInfo.name = node.getName().toString().toCharArray();
 		newInfo.setNameSourceStart(node.getName().getStartPosition());
 		newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
 		setSourceRange(newInfo, node);
-		newInfo.setFlags(Flags.AccModule);
 		List<?> moduleStatements = node.moduleStatements();
-		newInfo.requires = moduleStatements.stream()
+		LinkedHashSet<ModuleReferenceInfo> requires = new LinkedHashSet<>(moduleStatements.stream()
 			.filter(RequiresDirective.class::isInstance)
 			.map(RequiresDirective.class::cast)
 			.map(this::toModuleReferenceInfo)
-			.toArray(ModuleReferenceInfo[]::new);
+			.toList());
+		if (!Arrays.equals(node.getName().toString().toCharArray(), TypeConstants.JAVA_BASE)) {
+			ModuleReferenceInfo ref = new ModuleReferenceInfo();
+			ref.name = TypeConstants.JAVA_BASE;
+			requires.add(ref);
+		}
+		newInfo.requires = requires.toArray(ModuleReferenceInfo[]::new);
 		newInfo.exports = moduleStatements.stream()
 			.filter(ExportsDirective.class::isInstance)
 			.map(ExportsDirective.class::cast)
-			.map(req -> toPackageExportInfo(req, req.getName(), req.getFlags()))
+			.map(this::toPackageExportInfo)
 			.toArray(PackageExportInfo[]::new);
 		newInfo.opens = moduleStatements.stream()
 			.filter(OpensDirective.class::isInstance)
 			.map(OpensDirective.class::cast)
-			.map(req -> toPackageExportInfo(req, req.getName(), req.getFlags()))
+			.map(this::toPackageExportInfo)
 			.toArray(PackageExportInfo[]::new);
 		newInfo.usedServices = moduleStatements.stream()
 			.filter(UsesDirective.class::isInstance)
@@ -978,6 +981,13 @@ class DOMToModelPopulator extends ASTVisitor {
 			.toArray(ServiceInfo[]::new);
 		this.infos.push(newInfo);
 		this.toPopulate.put(newElement, newInfo);
+		
+		this.unitInfo.setModule(newElement);
+		try {
+			this.root.getJavaProject().setModuleDescription(newElement);
+		} catch (JavaModelException e) {
+			ILog.get().error(e.getMessage(), e);
+		}
 		return true;
 	}
 	@Override
@@ -988,16 +998,20 @@ class DOMToModelPopulator extends ASTVisitor {
 
 	private ModuleReferenceInfo toModuleReferenceInfo(RequiresDirective node) {
 		ModuleReferenceInfo res = new ModuleReferenceInfo();
-		res.modifiers = node.getModifiers();
+		res.modifiers =
+			(ModuleModifier.isTransitive(node.getModifiers()) ? ClassFileConstants.ACC_TRANSITIVE : 0) |
+			(ModuleModifier.isStatic(node.getModifiers()) ? Flags.AccStatic : 0); 
 		res.name = node.getName().toString().toCharArray();
 		setSourceRange(res, node);
 		return res;
 	}
-	private PackageExportInfo toPackageExportInfo(ASTNode node, Name name, int flags) {
+	private PackageExportInfo toPackageExportInfo(ModulePackageAccess node) {
 		PackageExportInfo res = new PackageExportInfo();
-		res.flags = flags;
-		res.pack = name.toString().toCharArray();
+		res.pack = node.getName().toString().toCharArray();
 		setSourceRange(res, node);
+		List<Name> modules = node.modules();
+		res.target = modules == null || modules.isEmpty() ? null :
+			modules.stream().map(name -> name.toString().toCharArray()).toArray(char[][]::new);
 		return res;
 	}
 	private ServiceInfo toServiceInfo(ProvidesDirective node) {
