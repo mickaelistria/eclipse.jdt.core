@@ -45,14 +45,17 @@ import org.eclipse.jdt.core.dom.BooleanLiteral;
 import org.eclipse.jdt.core.dom.CharacterLiteral;
 import org.eclipse.jdt.core.dom.ClassInstanceCreation;
 import org.eclipse.jdt.core.dom.Comment;
+import org.eclipse.jdt.core.dom.CreationReference;
 import org.eclipse.jdt.core.dom.EnumConstantDeclaration;
 import org.eclipse.jdt.core.dom.EnumDeclaration;
 import org.eclipse.jdt.core.dom.ExportsDirective;
 import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.FieldDeclaration;
 import org.eclipse.jdt.core.dom.IExtendedModifier;
 import org.eclipse.jdt.core.dom.ImportDeclaration;
 import org.eclipse.jdt.core.dom.Initializer;
+import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.MarkerAnnotation;
 import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -77,10 +80,12 @@ import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.SingleMemberAnnotation;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.StringLiteral;
+import org.eclipse.jdt.core.dom.SuperMethodReference;
 import org.eclipse.jdt.core.dom.TagElement;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeLiteral;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.UsesDirective;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
@@ -995,6 +1000,33 @@ class DOMToModelPopulator extends ASTVisitor {
 		this.elements.pop();
 		this.infos.pop();
 	}
+
+	@Override
+	public boolean visit(LambdaExpression node) {
+		this.unitInfo.hasFunctionalTypes = true;
+		return true;
+	}
+	@Override
+	public boolean visit(CreationReference node) {
+		this.unitInfo.hasFunctionalTypes = true;
+		return true;
+	}
+	@Override
+	public boolean visit(ExpressionMethodReference node) {
+		this.unitInfo.hasFunctionalTypes = true;
+		return true;
+	}
+	@Override
+	public boolean visit(TypeMethodReference node) {
+		this.unitInfo.hasFunctionalTypes = true;
+		return true;
+	}
+	@Override
+	public boolean visit(SuperMethodReference node) {
+		this.unitInfo.hasFunctionalTypes = true;
+		return true;
+	}
+
 
 	private ModuleReferenceInfo toModuleReferenceInfo(RequiresDirective node) {
 		ModuleReferenceInfo res = new ModuleReferenceInfo();
