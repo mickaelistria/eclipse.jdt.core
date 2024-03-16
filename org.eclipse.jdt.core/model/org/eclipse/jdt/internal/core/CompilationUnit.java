@@ -183,7 +183,7 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 		ASTParser astParser = ASTParser.newParser(info instanceof ASTHolderCUInfo astHolder && astHolder.astLevel > 0 ? astHolder.astLevel : AST.getJLSLatest());
 		astParser.setWorkingCopyOwner(getOwner());
 		astParser.setSource(this instanceof ClassFileWorkingCopy ? source : this);
-		astParser.setProject(getJavaProject());
+		astParser.setProject(getResource() != null && getResource().exists() ? getJavaProject() : null); // unset project for non-existing resource
 		astParser.setStatementsRecovery((reconcileFlags & ICompilationUnit.ENABLE_STATEMENTS_RECOVERY) != 0);
 		astParser.setResolveBindings(computeProblems || resolveBindings);
 		astParser.setBindingsRecovery((reconcileFlags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0);
@@ -851,6 +851,7 @@ private org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner 
 		ASTParser parser = ASTParser.newParser(AST.getJLSLatest()); // TODO use Java project info
 		parser.setWorkingCopyOwner(workingCopyOwner);
 		parser.setSource(this);
+		parser.setProject(getResource() != null && getResource().exists() ? getJavaProject() : null); // unset project for non-existing resource
 		// greedily enable everything assuming the AST will be used extensively for edition
 		parser.setResolveBindings(true);
 		parser.setStatementsRecovery(true);
