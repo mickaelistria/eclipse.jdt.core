@@ -568,7 +568,7 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 			IBinding binding = resolveBinding(node);
 			if (binding != null) {
 				IJavaElement element = binding.getJavaElement();
-				if (element != null) {
+				if (element != null && element.exists()) {
 					return new IJavaElement[] { element };
 				} else if (binding instanceof ITypeBinding typeBinding) {
 					// fallback to calling index, inspired/copied from SelectionEngine
