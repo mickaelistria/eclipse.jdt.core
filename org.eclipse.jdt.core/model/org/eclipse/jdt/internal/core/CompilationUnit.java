@@ -63,6 +63,7 @@ import org.eclipse.jdt.internal.compiler.env.IElementInfo;
 import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
 import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 import org.eclipse.jdt.internal.compiler.problem.AbortCompilationUnit;
+import org.eclipse.jdt.internal.compiler.problem.DefaultProblem;
 import org.eclipse.jdt.internal.compiler.problem.DefaultProblemFactory;
 import org.eclipse.jdt.internal.compiler.problem.ProblemSeverities;
 import org.eclipse.jdt.internal.compiler.util.SuffixConstants;
@@ -216,17 +217,24 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 		}
 		if (dom instanceof org.eclipse.jdt.core.dom.CompilationUnit newAST) {
 			if (computeProblems) {
+				IProblem[] interestingProblems = Arrays.stream(newAST.getProblems())
+					.filter(problem ->
+						!ignoreOptionalProblems()
+						|| !(problem instanceof DefaultProblem)
+						|| (problem instanceof DefaultProblem defaultProblem && (defaultProblem.severity & ProblemSeverities.Optional) == 0)
+					).toArray(IProblem[]::new);
 				if (perWorkingCopyInfo != null && problems == null) {
 					try {
 						perWorkingCopyInfo.beginReporting();
-						for (IProblem problem : newAST.getProblems()) {
+						for (IProblem problem : interestingProblems) {
 							perWorkingCopyInfo.acceptProblem(problem);
 						}
 					} finally {
 						perWorkingCopyInfo.endReporting();
 					}
-				} else if (newAST.getProblems().length > 0) {
-					problems.put(IJavaModelMarker.JAVA_MODEL_PROBLEM_MARKER, Stream.of(newAST.getProblems()).filter(CategorizedProblem.class::isInstance)
+				} else if (interestingProblems.length > 0) {
+					problems.put(IJavaModelMarker.JAVA_MODEL_PROBLEM_MARKER, Stream.of(interestingProblems)
+						.filter(CategorizedProblem.class::isInstance)
 						.map(CategorizedProblem.class::cast)
 						.toArray(CategorizedProblem[]::new));
 				}
