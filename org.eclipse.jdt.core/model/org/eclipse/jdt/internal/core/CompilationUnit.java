@@ -570,28 +570,18 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 				IJavaElement element = binding.getJavaElement();
 				if (element != null && element.exists()) {
 					return new IJavaElement[] { element };
-				} else if (binding instanceof ITypeBinding typeBinding) {
-					// fallback to calling index, inspired/copied from SelectionEngine
-					List<IType> indexMatch = new ArrayList<>();
-					TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
-						@Override
-						public void acceptTypeNameMatch(org.eclipse.jdt.core.search.TypeNameMatch match) {
-							indexMatch.add(match.getType());
+				}
+				if (binding instanceof ITypeBinding typeBinding) {
+					if (getJavaProject() != null) {
+						IType type = getJavaProject().findType(typeBinding.getQualifiedName());
+						if (type != null) {
+							return new IJavaElement[] { type };
 						}
-					};
-					IJavaSearchScope scope = BasicSearchEngine.createWorkspaceScope();
-					new BasicSearchEngine(getOwner()).searchAllTypeNames(
-						typeBinding.getPackage() != null ? typeBinding.getPackage().getName().toCharArray() : null,
-						SearchPattern.R_EXACT_MATCH,
-						typeBinding.getName().toCharArray(),
-						SearchPattern.R_EXACT_MATCH | SearchPattern.R_CASE_SENSITIVE,
-						IJavaSearchConstants.TYPE,
-						scope,
-						new TypeNameMatchRequestorWrapper(requestor, scope),
-						IJavaSearchConstants.CANCEL_IF_NOT_READY_TO_SEARCH,
-						new NullProgressMonitor());
-					if (!indexMatch.isEmpty()) {
-						return indexMatch.toArray(IJavaElement[]::new);
+					}
+					// fallback to calling index, inspired/copied from SelectionEngine
+					IJavaElement[] indexMatch = findTypeInIndex(typeBinding.getPackage().getName(), typeBinding.getName());
+					if (indexMatch.length > 0) {
+						return indexMatch;
 					}
 				} else if (binding instanceof IVariableBinding variableBinding && variableBinding.getDeclaringMethod() != null && variableBinding.getDeclaringMethod().isCompactConstructor()) {
 					// workaround for JavaSearchBugs15Tests.testBug558812_012
@@ -653,37 +643,28 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 			currentNode = currentNode.getParent();
 		}
 		if (currentNode instanceof Type parentType) {
-			List<IType> indexMatch = new ArrayList<>();
-			TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
-				@Override
-				public void acceptTypeNameMatch(org.eclipse.jdt.core.search.TypeNameMatch match) {
-					indexMatch.add(match.getType());
+			if (getJavaProject() != null) {
+				StringBuilder buffer = new StringBuilder();
+				Util.getFullyQualifiedName(parentType, buffer);
+				IType type = getJavaProject().findType(buffer.toString());
+				if (type != null) {
+					return new IJavaElement[] { type };
 				}
-			};
-			IJavaSearchScope scope = BasicSearchEngine.createWorkspaceScope();
-			char[] packageName = parentType instanceof QualifiedType qType ? qType.getQualifier().toString().toCharArray() :
+			}
+			String packageName = parentType instanceof QualifiedType qType ? qType.getQualifier().toString() :
 				parentType instanceof SimpleType sType ?
-					sType.getName() instanceof QualifiedName qName ? qName.getQualifier().toString().toCharArray() :
+					sType.getName() instanceof QualifiedName qName ? qName.getQualifier().toString() :
 					null :
 				null;
-			char[] simpleName = parentType instanceof QualifiedType qType ? qType.getName().toString().toCharArray() :
+			String simpleName = parentType instanceof QualifiedType qType ? qType.getName().toString() :
 				parentType instanceof SimpleType sType ?
-					sType.getName() instanceof SimpleName sName ? sName.getIdentifier().toCharArray() :
-					sType.getName() instanceof QualifiedName qName ? qName.getName().toString().toCharArray() :
+					sType.getName() instanceof SimpleName sName ? sName.getIdentifier() :
+					sType.getName() instanceof QualifiedName qName ? qName.getName().toString() :
 					null :
 				null;
-			new BasicSearchEngine(getOwner()).searchAllTypeNames(
-				packageName,
-				SearchPattern.R_EXACT_MATCH,
-				simpleName,
-				SearchPattern.R_EXACT_MATCH | SearchPattern.R_CASE_SENSITIVE,
-				IJavaSearchConstants.TYPE,
-				scope,
-				new TypeNameMatchRequestorWrapper(requestor, scope),
-				IJavaSearchConstants.WAIT_UNTIL_READY_TO_SEARCH,
-				new NullProgressMonitor());
-			if (!indexMatch.isEmpty()) {
-				return indexMatch.toArray(IJavaElement[]::new);
+			IJavaElement[] indexResult = findTypeInIndex(packageName, simpleName);
+			if (indexResult.length > 0) {
+				return indexResult;
 			}
 		}
 		// no good idea left
@@ -834,6 +815,44 @@ private static boolean matchSignatures(IMethodBinding invocation, IMethodBinding
 	return true;
 }
 
+private IJavaElement[] findTypeInIndex(String packageName, String simpleName) throws JavaModelException {
+	List<IType> indexMatch = new ArrayList<>();
+	TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
+		@Override
+		public void acceptTypeNameMatch(org.eclipse.jdt.core.search.TypeNameMatch match) {
+			indexMatch.add(match.getType());
+		}
+	};
+	IJavaSearchScope scope = BasicSearchEngine.createJavaSearchScope(new IJavaProject[] { getJavaProject() });
+	new BasicSearchEngine(getOwner()).searchAllTypeNames(
+		packageName != null ? packageName.toCharArray() : null,
+		SearchPattern.R_EXACT_MATCH,
+		simpleName.toCharArray(),
+		SearchPattern.R_EXACT_MATCH | SearchPattern.R_CASE_SENSITIVE,
+		IJavaSearchConstants.TYPE,
+		scope,
+		new TypeNameMatchRequestorWrapper(requestor, scope),
+		IJavaSearchConstants.WAIT_UNTIL_READY_TO_SEARCH,
+		new NullProgressMonitor());
+	if (!indexMatch.isEmpty()) {
+		return indexMatch.toArray(IJavaElement[]::new);
+	}
+	scope = BasicSearchEngine.createWorkspaceScope();
+	new BasicSearchEngine(getOwner()).searchAllTypeNames(
+		packageName != null ? packageName.toCharArray() : null,
+		SearchPattern.R_EXACT_MATCH,
+		simpleName.toCharArray(),
+		SearchPattern.R_EXACT_MATCH | SearchPattern.R_CASE_SENSITIVE,
+		IJavaSearchConstants.TYPE,
+		scope,
+		new TypeNameMatchRequestorWrapper(requestor, scope),
+		IJavaSearchConstants.WAIT_UNTIL_READY_TO_SEARCH,
+		new NullProgressMonitor());
+	if (!indexMatch.isEmpty()) {
+		return indexMatch.toArray(IJavaElement[]::new);
+	}
+	return new IJavaElement[0];
+}
 
 private org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner workingCopyOwner) {
 	// https://github.com/eclipse-jdtls/eclipse-jdt-core-incubator/pull/133
