@@ -576,7 +576,7 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 			IBinding binding = resolveBinding(node);
 			if (binding != null) {
 				IJavaElement element = binding.getJavaElement();
-				if (element != null && element.exists()) {
+				if (element != null && (element instanceof IPackageFragment || element.exists())) {
 					return new IJavaElement[] { element };
 				}
 				if (binding instanceof ITypeBinding typeBinding) {
