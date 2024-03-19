@@ -549,6 +549,9 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 					length -= removedTrailing;
 				}
 			} while (changed);
+		} else {
+			String selectedWords = getSelectedWords(offset, length);
+			return findType(null, selectedWords);
 		}
 		NodeFinder finder = new NodeFinder(currentAST, offset, length);
 		final ASTNode node = finder.getCoveredNode() != null && finder.getCoveredNode().getStartPosition() > offset && finder.getCoveringNode().getStartPosition() + finder.getCoveringNode().getLength() > offset + length ?
@@ -580,14 +583,8 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 					return new IJavaElement[] { element };
 				}
 				if (binding instanceof ITypeBinding typeBinding) {
-					if (getJavaProject() != null) {
-						IType type = getJavaProject().findType(typeBinding.getQualifiedName());
-						if (type != null) {
-							return new IJavaElement[] { type };
-						}
-					}
 					// fallback to calling index, inspired/copied from SelectionEngine
-					IJavaElement[] indexMatch = findTypeInIndex(typeBinding.getPackage().getName(), typeBinding.getName());
+					IJavaElement[] indexMatch = findType(typeBinding.getPackage().getName(), typeBinding.getName());
 					if (indexMatch.length > 0) {
 						return indexMatch;
 					}
@@ -651,14 +648,6 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 			currentNode = currentNode.getParent();
 		}
 		if (currentNode instanceof Type parentType) {
-			if (getJavaProject() != null) {
-				StringBuilder buffer = new StringBuilder();
-				Util.getFullyQualifiedName(parentType, buffer);
-				IType type = getJavaProject().findType(buffer.toString());
-				if (type != null) {
-					return new IJavaElement[] { type };
-				}
-			}
 			String packageName = parentType instanceof QualifiedType qType ? qType.getQualifier().toString() :
 				parentType instanceof SimpleType sType ?
 					sType.getName() instanceof QualifiedName qName ? qName.getQualifier().toString() :
@@ -670,7 +659,7 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 					sType.getName() instanceof QualifiedName qName ? qName.getName().toString() :
 					null :
 				null;
-			IJavaElement[] indexResult = findTypeInIndex(packageName, simpleName);
+			IJavaElement[] indexResult = findType(packageName, simpleName);
 			if (indexResult.length > 0) {
 				return indexResult;
 			}
@@ -823,7 +812,13 @@ private static boolean matchSignatures(IMethodBinding invocation, IMethodBinding
 	return true;
 }
 
-private IJavaElement[] findTypeInIndex(String packageName, String simpleName) throws JavaModelException {
+private IJavaElement[] findType(String packageName, String simpleName) throws JavaModelException {
+	if (getJavaProject() != null) {
+		IType type = getJavaProject().findType(packageName != null ? packageName + '.' + simpleName : simpleName);
+		if (type != null) {
+			return new IJavaElement[] { type };
+		}
+	}
 	List<IType> indexMatch = new ArrayList<>();
 	TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
 		@Override
@@ -860,6 +855,14 @@ private IJavaElement[] findTypeInIndex(String packageName, String simpleName) th
 		return indexMatch.toArray(IJavaElement[]::new);
 	}
 	return new IJavaElement[0];
+}
+
+private String getSelectedWords(int offset, int length) {
+	String content = new String(getContents());
+	int end = offset + length - 1;
+	while (end < content.length() && !Character.isWhitespace(content.charAt(end))) end++;
+	while (offset > 0 && !Character.isWhitespace(content.charAt(offset - 1))) offset--;
+	return content.substring(offset, end);
 }
 
 private org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner workingCopyOwner) {
