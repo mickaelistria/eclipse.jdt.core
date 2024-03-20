@@ -266,6 +266,15 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 				structureKnown &= (IProblem.Syntax & problem.getID()) == 0;
 			}
 			unitInfo.setIsStructureKnown(structureKnown);
+			if ((reconcileFlags & ICompilationUnit.ENABLE_STATEMENTS_RECOVERY) != 0 &&
+				(computeProblems || resolveBindings) &&
+				(reconcileFlags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0 &&
+				(reconcileFlags & ICompilationUnit.IGNORE_METHOD_BODIES) == 0) {
+				// most complete possible AST
+				this.ast = newAST;		
+			} else {
+				this.ast = null; 
+			}
 		}
 	} else {
 		CompilerOptions compilerOptions = new CompilerOptions(options);
@@ -515,31 +524,33 @@ public IJavaElement[] codeSelect(int offset, int length, WorkingCopyOwner workin
 	}
 }
 
-org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner workingCopyOwner) {
+org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner workingCopyOwner) throws JavaModelException {
 	// https://github.com/eclipse-jdtls/eclipse-jdt-core-incubator/pull/133
 	// we should find some better condition than this as we would like to avoid calling twice this method
 	// on the same unsaved working copy does re-create an AST every time
-	boolean createAst = this.ast == null;
-	if (!createAst) {
-		try {
-			createAst = this.isWorkingCopy() && this.hasUnsavedChanges();
-		} catch (JavaModelException e) {
-			createAst = true;
+	boolean storeAST = isConsistent() &&
+		workingCopyOwner == getOwner() &&
+		isWorkingCopy() &&
+		!hasUnsavedChanges(); 
+	if (this.ast != null && storeAST) {
+		return this.ast;
+	}
+	ASTParser parser = ASTParser.newParser(AST.getJLSLatest()); // TODO use Java project info
+	parser.setWorkingCopyOwner(workingCopyOwner);
+	parser.setSource(this);
+	// greedily enable everything assuming the AST will be used extensively for edition
+	parser.setResolveBindings(true);
+	parser.setStatementsRecovery(true);
+	parser.setBindingsRecovery(true);
+	parser.setCompilerOptions(getOptions(true));
+	if (parser.createAST(null) instanceof org.eclipse.jdt.core.dom.CompilationUnit newAST) {
+		if (storeAST) {
+			return this.ast = newAST;
+		} else {
+			return newAST;
 		}
 	}
-	if (createAst) {
-		ASTParser parser = ASTParser.newParser(AST.getJLSLatest()); // TODO use Java project info
-		parser.setWorkingCopyOwner(workingCopyOwner);
-		parser.setSource(this);
-		// greedily enable everything assuming the AST will be used extensively for edition
-		parser.setResolveBindings(true);
-		parser.setStatementsRecovery(true);
-		parser.setBindingsRecovery(true);
-		parser.setCompilerOptions(getOptions(true));
-		if (parser.createAST(null) instanceof org.eclipse.jdt.core.dom.CompilationUnit newAST) {
-			this.ast = newAST;
-		}
-	}
+	// fallback to local AST
 	return this.ast;
 }
 
