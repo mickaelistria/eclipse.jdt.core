@@ -152,10 +152,8 @@ class DOMCodeSelector {
 			IBinding importBinding = importDecl.resolveBinding();
 			if (importBinding instanceof IMethodBinding methodBinding) {
 				ArrayDeque<IJavaElement> overloadedMethods = Stream.of(methodBinding.getDeclaringClass().getDeclaredMethods()) //
-						.filter(otherMethodBinding -> {
-							return methodBinding.getName().equals(otherMethodBinding.getName());
-						}) //
-						.map(binding -> binding.getJavaElement()) //
+						.filter(otherMethodBinding -> methodBinding.getName().equals(otherMethodBinding.getName())) //
+						.map(IMethodBinding::getJavaElement) //
 						.collect(Collectors.toCollection(ArrayDeque::new));
 				IJavaElement[] reorderedOverloadedMethods = new IJavaElement[overloadedMethods.size()];
 				Iterator<IJavaElement> reverseIterator = overloadedMethods.descendingIterator();
@@ -312,10 +310,7 @@ class DOMCodeSelector {
 	
 						while (superclassBinding != null) {
 							Optional<IMethodBinding> potentialConstructor = Stream.of(superclassBinding.getDeclaredMethods()) //
-									.filter(methodBinding -> {
-										return methodBinding.isConstructor() &&
-												matchSignatures(constructorBinding, methodBinding);
-									}) //
+									.filter(methodBinding -> methodBinding.isConstructor() && matchSignatures(constructorBinding, methodBinding))
 									.findFirst();
 							if (potentialConstructor.isPresent()) {
 								IMethodBinding theConstructor = potentialConstructor.get();
