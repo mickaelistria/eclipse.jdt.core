@@ -61,7 +61,7 @@ class DOMCompletionEngine implements Runnable {
 		} else if (node instanceof MethodDeclaration method) {
 			return Stream.of((List<ASTNode>)method.parameters(), (List<ASTNode>)method.typeParameters())
 				.flatMap(List::stream)
-				.map(org.eclipse.jdt.internal.core.CompilationUnit::resolveBinding)
+				.map(DOMCodeSelector::resolveBinding)
 				.filter(Objects::nonNull)
 				.toList();
 		} else if (node instanceof TypeDeclaration type) {
@@ -71,7 +71,7 @@ class DOMCompletionEngine implements Runnable {
 				.toArray(VariableDeclarationFragment[]::new);
 			return Stream.of(fields, type.getMethods(), type.getTypes())
 				.flatMap(Arrays::stream)
-				.map(org.eclipse.jdt.internal.core.CompilationUnit::resolveBinding)
+				.map(DOMCodeSelector::resolveBinding)
 				.filter(Objects::nonNull)
 				.toList();
 		}
