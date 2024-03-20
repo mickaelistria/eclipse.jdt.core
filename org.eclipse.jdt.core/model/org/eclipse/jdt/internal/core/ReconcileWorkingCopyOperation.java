@@ -14,14 +14,23 @@
 package org.eclipse.jdt.internal.core;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.eclipse.core.runtime.ISafeRunnable;
 import org.eclipse.core.runtime.OperationCanceledException;
 import org.eclipse.core.runtime.SafeRunner;
-import org.eclipse.jdt.core.*;
+import org.eclipse.jdt.core.ICompilationUnit;
+import org.eclipse.jdt.core.IJavaElement;
+import org.eclipse.jdt.core.IJavaModelStatus;
+import org.eclipse.jdt.core.IJavaModelStatusConstants;
+import org.eclipse.jdt.core.IJavaProject;
+import org.eclipse.jdt.core.IProblemRequestor;
+import org.eclipse.jdt.core.JavaModelException;
+import org.eclipse.jdt.core.WorkingCopyOwner;
 import org.eclipse.jdt.core.compiler.CategorizedProblem;
 import org.eclipse.jdt.core.compiler.CompilationParticipant;
 import org.eclipse.jdt.core.compiler.IProblem;
@@ -201,16 +210,20 @@ public class ReconcileWorkingCopyOperation extends JavaModelOperation {
 						if ((this.reconcileFlags & ICompilationUnit.FORCE_PROBLEM_DETECTION) != 0 && newAST != null) {
 							newAST.getAST().resolveWellKnownType(PrimitiveType.BOOLEAN.toString()); //trigger resolution and analysis
 						}
-						CategorizedProblem[] newProblems = Arrays.stream(newAST.getProblems())
-							.filter(CategorizedProblem.class::isInstance)
-							.map(CategorizedProblem.class::cast)
-							.toArray(CategorizedProblem[]::new);
-						this.problems.put(Integer.toString(CategorizedProblem.CAT_UNSPECIFIED), newProblems); // TODO better category
+						Map<String, List<CategorizedProblem>> groupedProblems = new HashMap<>();
+						for (IProblem problem : newAST.getProblems()) {
+							if (problem instanceof CategorizedProblem categorizedProblem) {
+								groupedProblems.computeIfAbsent(categorizedProblem.getMarkerType(), key -> new ArrayList<>()).add(categorizedProblem);
+							}
+						}
+						for (Entry<String, List<CategorizedProblem>> entry : groupedProblems.entrySet()) {
+							this.problems.put(entry.getKey(), entry.getValue().toArray(CategorizedProblem[]::new));
+						}
 						if (this.astLevel != ICompilationUnit.NO_AST) {
 							this.ast = newAST;
 						}
 					} catch (AbortCompilationUnit ex) {
-						var problem = ex.problem; 
+						var problem = ex.problem;
 						if (problem == null && ex.exception instanceof IOException ioEx) {
 							String path = source.getPath().toString();
 							String exceptionTrace = ioEx.getClass().getName() + ':' + ioEx.getMessage();
@@ -226,7 +239,7 @@ public class ReconcileWorkingCopyOperation extends JavaModelOperation {
 							new CategorizedProblem[] { problem });
 					}
 				} else {
-					CompilationUnitDeclaration unit = null; 
+					CompilationUnitDeclaration unit = null;
 					try {
 						unit = CompilationUnitProblemFinder.process(
 								source,
@@ -236,7 +249,7 @@ public class ReconcileWorkingCopyOperation extends JavaModelOperation {
 								this.reconcileFlags,
 								this.progressMonitor);
 						if (this.progressMonitor != null) this.progressMonitor.worked(1);
-		
+
 						// create AST if needed
 						if (this.astLevel != ICompilationUnit.NO_AST
 								&& unit !=null/*unit is null if working copy is consistent && (problem detection not forced || non-Java project) -> don't create AST as per API*/) {
