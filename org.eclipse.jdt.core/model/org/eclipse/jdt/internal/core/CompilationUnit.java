@@ -200,7 +200,13 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 		ASTParser astParser = ASTParser.newParser(info instanceof ASTHolderCUInfo astHolder && astHolder.astLevel > 0 ? astHolder.astLevel : AST.getJLSLatest());
 		astParser.setWorkingCopyOwner(getOwner());
 		astParser.setSource(this instanceof ClassFileWorkingCopy ? source : this);
-		astParser.setProject(getJavaProject());
+		if (resolveBindings || computeProblems) {
+			astParser.setProject(getJavaProject());
+		} else {
+			// workaround https://github.com/eclipse-jdt/eclipse.jdt.core/issues/2204
+			// skips many operations, and prevents from conflicting classpath computation
+			astParser.setProject(null);
+		}
 		astParser.setStatementsRecovery((reconcileFlags & ICompilationUnit.ENABLE_STATEMENTS_RECOVERY) != 0);
 		astParser.setResolveBindings(computeProblems || resolveBindings);
 		astParser.setBindingsRecovery((reconcileFlags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0);
@@ -259,8 +265,6 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 				astHolder.ast = newAST;
 			}
 			newAST.accept(new DOMToModelPopulator(newElements, this, unitInfo));
-			// unitInfo.setModule();
-			// unitInfo.setSourceLength(newSourceLength);
 			boolean structureKnown = true;
 			for (IProblem problem : newAST.getProblems()) {
 				structureKnown &= (IProblem.Syntax & problem.getID()) == 0;
@@ -271,9 +275,9 @@ protected boolean buildStructure(OpenableElementInfo info, final IProgressMonito
 				(reconcileFlags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0 &&
 				(reconcileFlags & ICompilationUnit.IGNORE_METHOD_BODIES) == 0) {
 				// most complete possible AST
-				this.ast = newAST;		
+				this.ast = newAST;
 			} else {
-				this.ast = null; 
+				this.ast = null;
 			}
 		}
 	} else {
@@ -531,7 +535,7 @@ org.eclipse.jdt.core.dom.CompilationUnit getOrBuildAST(WorkingCopyOwner workingC
 	boolean storeAST = isConsistent() &&
 		workingCopyOwner == getOwner() &&
 		isWorkingCopy() &&
-		!hasUnsavedChanges(); 
+		!hasUnsavedChanges();
 	if (this.ast != null && storeAST) {
 		return this.ast;
 	}

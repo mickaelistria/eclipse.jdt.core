@@ -13,14 +13,6 @@
  *******************************************************************************/
 package org.eclipse.jdt.core.tests.dom;
 
-import junit.framework.Test;
-
-import org.eclipse.jdt.core.dom.*;
-import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
-import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
-import org.eclipse.jdt.internal.core.JrtPackageFragmentRoot;
-import org.eclipse.jdt.internal.core.SourceModule;
-
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -28,6 +20,7 @@ import org.eclipse.core.resources.IncrementalProjectBuilder;
 import org.eclipse.core.runtime.CoreException;
 import org.eclipse.core.runtime.Path;
 import org.eclipse.jdt.core.IClasspathAttribute;
+import org.eclipse.jdt.core.IClasspathEntry;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaProject;
@@ -38,6 +31,43 @@ import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.compiler.IProblem;
+import org.eclipse.jdt.core.dom.AST;
+import org.eclipse.jdt.core.dom.ASTNode;
+import org.eclipse.jdt.core.dom.ASTParser;
+import org.eclipse.jdt.core.dom.ASTRequestor;
+import org.eclipse.jdt.core.dom.AbstractTypeDeclaration;
+import org.eclipse.jdt.core.dom.CompilationUnit;
+import org.eclipse.jdt.core.dom.ExportsDirective;
+import org.eclipse.jdt.core.dom.Expression;
+import org.eclipse.jdt.core.dom.FieldAccess;
+import org.eclipse.jdt.core.dom.IAnnotationBinding;
+import org.eclipse.jdt.core.dom.IBinding;
+import org.eclipse.jdt.core.dom.IModuleBinding;
+import org.eclipse.jdt.core.dom.IPackageBinding;
+import org.eclipse.jdt.core.dom.ITypeBinding;
+import org.eclipse.jdt.core.dom.ImportDeclaration;
+import org.eclipse.jdt.core.dom.MethodDeclaration;
+import org.eclipse.jdt.core.dom.ModuleDeclaration;
+import org.eclipse.jdt.core.dom.ModuleDirective;
+import org.eclipse.jdt.core.dom.Name;
+import org.eclipse.jdt.core.dom.PackageDeclaration;
+import org.eclipse.jdt.core.dom.ProvidesDirective;
+import org.eclipse.jdt.core.dom.QualifiedName;
+import org.eclipse.jdt.core.dom.RequiresDirective;
+import org.eclipse.jdt.core.dom.SimpleName;
+import org.eclipse.jdt.core.dom.SuperFieldAccess;
+import org.eclipse.jdt.core.dom.TryStatement;
+import org.eclipse.jdt.core.dom.TypeDeclaration;
+import org.eclipse.jdt.core.dom.TypeParameter;
+import org.eclipse.jdt.core.dom.UsesDirective;
+import org.eclipse.jdt.core.dom.VariableDeclarationExpression;
+import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
+import org.eclipse.jdt.internal.compiler.impl.CompilerOptions;
+import org.eclipse.jdt.internal.core.JavaProject;
+import org.eclipse.jdt.internal.core.JrtPackageFragmentRoot;
+import org.eclipse.jdt.internal.core.SourceModule;
+
+import junit.framework.Test;
 
 @SuppressWarnings({"rawtypes"})
 public class ASTConverter9Test extends ConverterTestSetup {
@@ -1473,6 +1503,38 @@ public class ASTConverter9Test extends ConverterTestSetup {
 					problems, source.toCharArray());
 		} finally {
 			deleteProject(p);
+		}
+	}
+
+	public void testModulePathRefresh() throws CoreException {
+		IJavaProject project1 = createJavaProject("Completion9_1", new String[] {"src"}, new String[] {"JCL18_LIB"}, "bin", "9");
+		IJavaProject project2 = createJavaProject("Completion9_2", new String[] {"src"}, new String[] {"JCL18_LIB"}, "bin", "9");
+		try {
+			project1.open(null);
+			createFile("/Completion9_1/src/module-info.java", """
+				module first {
+					requires second;
+				}
+				""");
+			addClasspathEntry(project1, JavaCore.newContainerEntry(new Path("org.eclipse.jdt.MODULE_PATH")));
+
+			createFile("/Completion9_2/src/module-info.java", """
+				module second {
+					exports pack21 to first;
+					exports pack22 to first;
+				}
+				""");
+			addClasspathEntry(project1, JavaCore.newContainerEntry(project2.getPath()));
+			assertEquals(2, ((JavaProject)project1).getResolvedClasspath().length);
+
+			project1.close();
+			project1.open(null);
+
+			IClasspathEntry[] resolvedClasspath = ((JavaProject)project1).getResolvedClasspath();
+			assertEquals(2, resolvedClasspath.length);
+		} finally {
+			deleteProject(project1);
+			deleteProject(project2);
 		}
 	}
 // Add new tests here
