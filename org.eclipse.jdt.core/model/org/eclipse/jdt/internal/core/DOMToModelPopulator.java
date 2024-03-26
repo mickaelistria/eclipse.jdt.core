@@ -312,13 +312,19 @@ class DOMToModelPopulator extends ASTVisitor {
 			}
 		}
 		if (node.getAST().apiLevel() > 2) {
-			newInfo.setSuperInterfaceNames(((List<Type>)node.superInterfaceTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
+			char[][] superInterfaces = ((List<Type>)node.superInterfaceTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new);
+			if (superInterfaces.length > 0) {
+				newInfo.setSuperInterfaceNames(superInterfaces);
+			}
 		}
 		if (node.getAST().apiLevel() > 2 && node.getSuperclassType() != null) {
 			newInfo.setSuperclassName(node.getSuperclassType().toString().toCharArray());
 		}
 		if (node.getAST().apiLevel() >= AST.JLS17) {
-			newInfo.setPermittedSubtypeNames(((List<Type>)node.permittedTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
+			char[][] permitted = ((List<Type>)node.permittedTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new);
+			if (permitted.length > 0) {
+				newInfo.setPermittedSubtypeNames(permitted);
+			}
 		}
 		setSourceRange(newInfo, node);
 		newInfo.setFlags(toModelFlags(node.getModifiers(), isDeprecated) | (node.isInterface() ? Flags.AccInterface : 0));
@@ -894,7 +900,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		} else {
 			members = new IMemberValuePair[0];
 		}
-		
+
 		return new Annotation(parent, domAnnotation.getTypeName().toString()) {
 			@Override
 			public IMemberValuePair[] getMemberValuePairs() {
@@ -1042,7 +1048,7 @@ class DOMToModelPopulator extends ASTVisitor {
 
 		this.infos.push(newInfo);
 		this.toPopulate.put(newElement, newInfo);
-		
+
 		this.unitInfo.setModule(newElement);
 		try {
 			this.root.getJavaProject().setModuleDescription(newElement);
@@ -1088,7 +1094,7 @@ class DOMToModelPopulator extends ASTVisitor {
 		ModuleReferenceInfo res = new ModuleReferenceInfo();
 		res.modifiers =
 			(ModuleModifier.isTransitive(node.getModifiers()) ? ClassFileConstants.ACC_TRANSITIVE : 0) |
-			(ModuleModifier.isStatic(node.getModifiers()) ? Flags.AccStatic : 0); 
+			(ModuleModifier.isStatic(node.getModifiers()) ? Flags.AccStatic : 0);
 		res.name = node.getName().toString().toCharArray();
 		setSourceRange(res, node);
 		return res;
@@ -1163,7 +1169,7 @@ class DOMToModelPopulator extends ASTVisitor {
 	private char[][] getCategories(ASTNode node) {
 		Javadoc javadoc = javadoc(node);
 		if (javadoc != null) {
-			return ((List<AbstractTagElement>)javadoc.tags()).stream() //
+			char[][] categories = ((List<AbstractTagElement>)javadoc.tags()).stream() //
 					.filter(tag -> "@category".equals(tag.getTagName()) && ((List<ASTNode>)tag.fragments()).size() > 0) //$NON-NLS-1$
 					.map(tag -> ((List<ASTNode>)tag.fragments()).get(0)) //
 					.map(fragment -> {
@@ -1180,8 +1186,9 @@ class DOMToModelPopulator extends ASTVisitor {
 					.filter(category -> category.length() > 0) //
 					.map(category -> (category).toCharArray()) //
 					.toArray(char[][]::new);
+			return categories.length > 0 ? categories : null;
 		}
-		return new char[0][0];
+		return null;
 	}
 
 	private static org.eclipse.jdt.core.dom.CompilationUnit domUnit(ASTNode node) {
