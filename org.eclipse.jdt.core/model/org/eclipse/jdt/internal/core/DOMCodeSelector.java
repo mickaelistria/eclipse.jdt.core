@@ -44,6 +44,7 @@ import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.FieldAccess;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
+import org.eclipse.jdt.core.dom.IPackageBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
@@ -137,6 +138,7 @@ class DOMCodeSelector {
 				}
 			} while (changed);
 		}
+		String text = this.unit.getSource().substring(offset, offset + length).trim();
 		NodeFinder finder = new NodeFinder(currentAST, offset, length);
 		final ASTNode node = finder.getCoveredNode() != null && finder.getCoveredNode().getStartPosition() > offset && finder.getCoveringNode().getStartPosition() + finder.getCoveringNode().getLength() > offset + length ?
 			finder.getCoveredNode() :
@@ -166,6 +168,16 @@ class DOMCodeSelector {
 		} else if (findTypeDeclaration(node) == null) {
 			IBinding binding = resolveBinding(node);
 			if (binding != null) {
+				if (binding instanceof IPackageBinding packageBinding
+						&& text.length() > 0
+						&& !text.equals(packageBinding.getName())
+						&& packageBinding.getName().startsWith(text)) {
+					// resolved a too wide node for package name, restrict to selected name only
+					IJavaElement fragment = this.unit.getJavaProject().findPackageFragment(text);
+					if (fragment != null) {
+						return new IJavaElement[] { fragment };
+					}
+				}
 				IJavaElement element = binding.getJavaElement();
 				if (element != null && (element instanceof IPackageFragment || element.exists())) {
 					return new IJavaElement[] { element };
@@ -305,9 +317,9 @@ class DOMCodeSelector {
 						}
 					} else if (newInstance.resolveTypeBinding().isAnonymous()) {
 						// it's not in the anonymous class body, check for constructor decl in parent types
-	
+
 						ITypeBinding superclassBinding = newInstance.getType().resolveBinding();
-	
+
 						while (superclassBinding != null) {
 							Optional<IMethodBinding> potentialConstructor = Stream.of(superclassBinding.getDeclaredMethods()) //
 									.filter(methodBinding -> methodBinding.isConstructor() && matchSignatures(constructorBinding, methodBinding))
@@ -351,7 +363,7 @@ class DOMCodeSelector {
 						return null;
 					}
 				}
-	
+
 				// find the type that the method is bound to
 				ITypeBinding type = null;
 				ASTNode cursor = methodRef;
@@ -367,9 +379,9 @@ class DOMCodeSelector {
 						cursor = cursor.getParent();
 					}
 				}
-	
+
 				IMethodBinding boundMethod = type.getDeclaredMethods()[0];
-	
+
 				if (boundMethod.getParameterTypes().length != methodBinding.getParameterTypes().length && (!allowExtraParam || boundMethod.getParameterTypes().length != methodBinding.getParameterTypes().length + 1)) {
 					return null;
 				}
@@ -395,7 +407,7 @@ class DOMCodeSelector {
 		}
 		return null;
 	}
-	
+
 	private static ClassInstanceCreation findConstructor(ASTNode node) {
 		while (node != null && !(node instanceof ClassInstanceCreation)) {
 			ASTNode parent = node.getParent();
@@ -409,7 +421,7 @@ class DOMCodeSelector {
 		}
 		return (ClassInstanceCreation)node;
 	}
-	
+
 	private static AbstractTypeDeclaration findTypeDeclaration(ASTNode node) {
 		ASTNode cursor = node;
 		while (cursor != null && (cursor instanceof Type || cursor instanceof Name)) {
@@ -420,14 +432,14 @@ class DOMCodeSelector {
 		}
 		return null;
 	}
-	
+
 	private static org.eclipse.jdt.core.dom.ImportDeclaration findImportDeclaration(ASTNode node) {
 		while (node != null && !(node instanceof org.eclipse.jdt.core.dom.ImportDeclaration)) {
 			node = node.getParent();
 		}
 		return (org.eclipse.jdt.core.dom.ImportDeclaration)node;
 	}
-	
+
 	private static boolean matchSignatures(IMethodBinding invocation, IMethodBinding declaration) {
 		if (declaration.getTypeParameters().length == 0) {
 			return invocation.isSubsignature(declaration);
@@ -448,11 +460,11 @@ class DOMCodeSelector {
 			} else if (!invocation.getParameterTypes()[i].isSubTypeCompatible(declaration.getParameterTypes()[i])) {
 				return false;
 			}
-	
+
 		}
 		return true;
 	}
-	
+
 	private IJavaElement[] findTypeInIndex(String packageName, String simpleName) throws JavaModelException {
 		List<IType> indexMatch = new ArrayList<>();
 		TypeNameMatchRequestor requestor = new TypeNameMatchRequestor() {
@@ -491,5 +503,5 @@ class DOMCodeSelector {
 		}
 		return new IJavaElement[0];
 	}
-	
+
 }
