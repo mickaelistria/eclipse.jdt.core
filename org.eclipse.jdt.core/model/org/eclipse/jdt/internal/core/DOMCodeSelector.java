@@ -47,6 +47,7 @@ import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.IPackageBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.MethodReference;
@@ -144,11 +145,18 @@ class DOMCodeSelector {
 			finder.getCoveredNode() :
 			finder.getCoveringNode();
 		org.eclipse.jdt.core.dom.ImportDeclaration importDecl = findImportDeclaration(node);
-		if (node instanceof ExpressionMethodReference emr && emr.getExpression().getStartPosition() + emr.getExpression().getLength() <= offset && offset + length <= emr.getName().getStartPosition()) {
-			if (emr.getParent() instanceof MethodInvocation methodInvocation) {
-				int index = methodInvocation.arguments().indexOf(emr);
-				return new IJavaElement[] {methodInvocation.resolveMethodBinding().getParameterTypes()[index].getDeclaredMethods()[0].getJavaElement()};
-			}
+		if (node instanceof ExpressionMethodReference emr && emr.getExpression().getStartPosition() + emr.getExpression().getLength() <= offset && offset + length <= emr.getName().getStartPosition()
+			&& emr.getParent() instanceof MethodInvocation methodInvocation) {
+			// selected `::`
+			int index = methodInvocation.arguments().indexOf(emr);
+			return new IJavaElement[] {methodInvocation.resolveMethodBinding().getParameterTypes()[index].getDeclaredMethods()[0].getJavaElement()};
+		}
+		if (node instanceof LambdaExpression lambda
+			&& (text.equals("-") || text.equals(">") || text.equals("->")) //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+			&& lambda.resolveMethodBinding() != null
+			&& lambda.resolveMethodBinding().getMethodDeclaration() != null
+			&& lambda.resolveMethodBinding().getMethodDeclaration().getJavaElement() != null) {
+			return new IJavaElement[] { lambda.resolveMethodBinding().getMethodDeclaration().getJavaElement() };
 		}
 		if (importDecl != null && importDecl.isStatic()) {
 			IBinding importBinding = importDecl.resolveBinding();
