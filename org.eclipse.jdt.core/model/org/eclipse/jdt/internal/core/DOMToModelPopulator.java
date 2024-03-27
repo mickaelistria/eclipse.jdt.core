@@ -479,7 +479,12 @@ class DOMToModelPopulator extends ASTVisitor {
 	@Override
 	public boolean visit(SingleVariableDeclaration node) {
 		if (node.getParent() instanceof RecordDeclaration) {
-			SourceField newElement = new SourceField(this.elements.peek(), node.getName().toString());
+			SourceField newElement = new SourceField(this.elements.peek(), node.getName().toString()) {
+				@Override
+				public boolean isRecordComponent() throws JavaModelException {
+					return true;
+				}
+			};
 			this.elements.push(newElement);
 			addAsChild(this.infos.peek(), newElement);
 			SourceFieldElementInfo newInfo = new SourceFieldElementInfo();
@@ -487,6 +492,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			newInfo.setNameSourceStart(node.getName().getStartPosition());
 			newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
 			newInfo.setTypeName(node.getType().toString().toCharArray());
+			newInfo.setFlags(toModelFlags(node.getModifiers(), false));
 			newInfo.isRecordComponent = true;
 			this.infos.push(newInfo);
 			this.toPopulate.put(newElement, newInfo);
@@ -498,6 +504,7 @@ class DOMToModelPopulator extends ASTVisitor {
 			setSourceRange(newInfo, node);
 			newInfo.setNameSourceStart(node.getName().getStartPosition());
 			newInfo.setNameSourceEnd(node.getName().getStartPosition() + node.getName().getLength() - 1);
+			newInfo.setFlags(toModelFlags(node.getModifiers(), false));
 			this.infos.push(newInfo);
 			this.toPopulate.put(newElement, newInfo);
 		}
@@ -557,6 +564,9 @@ class DOMToModelPopulator extends ASTVisitor {
 			| ((method.getAST().apiLevel() > AST.JLS2 && ((List<SingleVariableDeclaration>)method.parameters()).stream().anyMatch(SingleVariableDeclaration::isVarargs)) ? Flags.AccVarargs : 0));
 		info.setNameSourceStart(method.getName().getStartPosition());
 		info.setNameSourceEnd(method.getName().getStartPosition() + method.getName().getLength() - 1);
+		if (method.getAST().apiLevel() >= AST.JLS16 && method.isCompactConstructor()) {
+			info.arguments = parameters.stream().map(param -> toLocalVariable(param, newElement, true)).toArray(ILocalVariable[]::new);
+		}
 		this.infos.push(info);
 		this.toPopulate.put(newElement, info);
 		return true;
@@ -910,6 +920,10 @@ class DOMToModelPopulator extends ASTVisitor {
 	}
 
 	static LocalVariable toLocalVariable(SingleVariableDeclaration parameter, JavaElement parent) {
+		return toLocalVariable(parameter, parent, parameter.getParent() instanceof MethodDeclaration);
+	}
+
+	private static LocalVariable toLocalVariable(SingleVariableDeclaration parameter, JavaElement parent, boolean isParameter) {
 		return new LocalVariable(parent,
 				parameter.getName().getIdentifier(),
 				getStartConsideringLeadingComments(parameter),
@@ -918,8 +932,8 @@ class DOMToModelPopulator extends ASTVisitor {
 				parameter.getName().getStartPosition() + parameter.getName().getLength() - 1,
 				Util.getSignature(parameter.getType()),
 				null, // should be populated while navigating children
-				toModelFlags(parameter.getFlags(), false),
-				parameter.getParent() instanceof MethodDeclaration);
+				toModelFlags(parameter.getModifiers(), false),
+				isParameter);
 	}
 
 	@Override

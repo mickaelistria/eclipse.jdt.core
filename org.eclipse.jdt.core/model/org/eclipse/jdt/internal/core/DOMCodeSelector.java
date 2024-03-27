@@ -186,6 +186,27 @@ class DOMCodeSelector {
 						return new IJavaElement[] { fragment };
 					}
 				}
+				// workaround https://github.com/eclipse-jdt/eclipse.jdt.core/issues/2177
+				if (binding instanceof IVariableBinding variableBinding &&
+					variableBinding.getDeclaringMethod() instanceof IMethodBinding declaringMethod &&
+					declaringMethod.isCompactConstructor() &&
+					Arrays.stream(declaringMethod.getParameterNames()).anyMatch(variableBinding.getName()::equals) &&
+					declaringMethod.getDeclaringClass() instanceof ITypeBinding recordBinding &&
+					recordBinding.isRecord() &&
+					recordBinding.getJavaElement() instanceof IType recordType &&
+					recordType.getField(variableBinding.getName()) instanceof SourceField field) {
+					// the parent must be the field and not the method
+					return new IJavaElement[] { new LocalVariable(field,
+						variableBinding.getName(),
+						0, // must be 0 for subsequent call to LocalVariableLocator.matchLocalVariable() to work
+						field.getSourceRange().getOffset() + field.getSourceRange().getLength() - 1,
+						field.getNameRange().getOffset(),
+						field.getNameRange().getOffset() + field.getNameRange().getLength() - 1,
+						field.getTypeSignature(),
+						null,
+						field.getFlags(),
+						true) };
+				}
 				IJavaElement element = binding.getJavaElement();
 				if (element != null && (element instanceof IPackageFragment || element.exists())) {
 					return new IJavaElement[] { element };
