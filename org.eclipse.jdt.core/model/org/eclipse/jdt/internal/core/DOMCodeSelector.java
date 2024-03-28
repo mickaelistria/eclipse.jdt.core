@@ -23,6 +23,7 @@ import java.util.stream.Stream;
 
 import org.eclipse.core.runtime.NullProgressMonitor;
 import org.eclipse.jdt.core.Flags;
+import org.eclipse.jdt.core.IField;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IJavaModelStatusConstants;
 import org.eclipse.jdt.core.IJavaProject;
@@ -223,7 +224,8 @@ class DOMCodeSelector {
 					if (indexMatch.length > 0) {
 						return indexMatch;
 					}
-				} else if (binding instanceof IVariableBinding variableBinding && variableBinding.getDeclaringMethod() != null && variableBinding.getDeclaringMethod().isCompactConstructor()) {
+				}
+				if (binding instanceof IVariableBinding variableBinding && variableBinding.getDeclaringMethod() != null && variableBinding.getDeclaringMethod().isCompactConstructor()) {
 					// workaround for JavaSearchBugs15Tests.testBug558812_012
 					if (variableBinding.getDeclaringMethod().getJavaElement() instanceof IMethod method) {
 						Optional<ILocalVariable> parameter = Arrays.stream(method.getParameters()).filter(param -> Objects.equals(param.getElementName(), variableBinding.getName())).findAny();
@@ -231,6 +233,12 @@ class DOMCodeSelector {
 							return new IJavaElement[] { parameter.get() };
 						}
 					}
+				}
+				if (binding instanceof IMethodBinding methodBinding &&
+					methodBinding.isSyntheticRecordMethod() &&
+					methodBinding.getDeclaringClass().getJavaElement() instanceof IType recordType &&
+					recordType.getField(methodBinding.getName()) instanceof IField field) {
+					return new IJavaElement[] { field };
 				}
 				ASTNode bindingNode = currentAST.findDeclaringNode(binding);
 				if (bindingNode != null) {
