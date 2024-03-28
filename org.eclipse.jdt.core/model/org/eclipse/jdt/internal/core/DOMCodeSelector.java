@@ -61,6 +61,7 @@ import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodInvocation;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -177,6 +178,12 @@ class DOMCodeSelector {
 		} else if (findTypeDeclaration(node) == null) {
 			IBinding binding = resolveBinding(node);
 			if (binding != null) {
+				if (node instanceof SuperMethodInvocation && // on `super`
+					binding instanceof IMethodBinding methodBinding &&
+					methodBinding.getDeclaringClass() instanceof ITypeBinding typeBinding &&
+					typeBinding.getJavaElement() instanceof IType type) {
+					return new IJavaElement[] { type };
+				}
 				if (binding instanceof IPackageBinding packageBinding
 						&& text.length() > 0
 						&& !text.equals(packageBinding.getName())
@@ -441,6 +448,9 @@ class DOMCodeSelector {
 		}
 		if (node instanceof org.eclipse.jdt.core.dom.Annotation annotation) {
 			return annotation.resolveTypeBinding();
+		}
+		if (node instanceof SuperMethodInvocation superMethod) {
+			return superMethod.resolveMethodBinding();
 		}
 		return null;
 	}
