@@ -48,6 +48,7 @@ import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.IPackageBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
+import org.eclipse.jdt.core.dom.Javadoc;
 import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
@@ -62,6 +63,7 @@ import org.eclipse.jdt.core.dom.SimpleType;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.SuperConstructorInvocation;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.TagElement;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.VariableDeclaration;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -146,6 +148,39 @@ class DOMCodeSelector {
 		final ASTNode node = finder.getCoveredNode() != null && finder.getCoveredNode().getStartPosition() > offset && finder.getCoveringNode().getStartPosition() + finder.getCoveringNode().getLength() > offset + length ?
 			finder.getCoveredNode() :
 			finder.getCoveringNode();
+		if (node instanceof TagElement tagElement && TagElement.TAG_INHERITDOC.equals(tagElement.getTagName())) {
+			ASTNode javadocNode = node;
+			while (javadocNode != null && !(javadocNode instanceof Javadoc)) {
+				javadocNode = javadocNode.getParent();
+			}
+			if (javadocNode instanceof Javadoc javadoc) {
+				ASTNode parent = javadoc.getParent();
+				IBinding binding = resolveBinding(parent);
+				if (binding instanceof IMethodBinding methodBinding) {
+					var typeBinding = methodBinding.getDeclaringClass();
+					if (typeBinding != null) {
+						List<ITypeBinding> types = new ArrayList<>(Arrays.asList(typeBinding.getInterfaces()));
+						if (typeBinding.getSuperclass() != null) {
+							types.add(typeBinding.getSuperclass());
+						}
+						var overridenMethods = types.stream().flatMap(type -> Arrays.stream(type.getDeclaredMethods()))
+							.filter(m -> methodBinding.overrides(m)) // should resolve to the 1st parent method which has doc
+							.map(IMethodBinding::getJavaElement)
+							.filter(Objects::nonNull)
+							.distinct()
+							.findFirst()
+							.map(element -> new IJavaElement[] { element });
+						if (overridenMethods.isPresent()) {
+							return overridenMethods.get();
+						}
+					}
+					IJavaElement element = methodBinding.getJavaElement();
+					if (element != null) {
+						return new IJavaElement[] { element };
+					}
+				}
+			}
+		}
 		org.eclipse.jdt.core.dom.ImportDeclaration importDecl = findImportDeclaration(node);
 		if (node instanceof ExpressionMethodReference emr && emr.getExpression().getStartPosition() + emr.getExpression().getLength() <= offset && offset + length <= emr.getName().getStartPosition()
 			&& emr.getParent() instanceof MethodInvocation methodInvocation) {
