@@ -250,6 +250,13 @@ class DOMCodeSelector {
 						field.getFlags(),
 						true) };
 				}
+				if (binding instanceof ITypeBinding typeBinding &&
+					typeBinding.isIntersectionType()) {
+					return Arrays.stream(typeBinding.getTypeBounds())
+							.map(ITypeBinding::getJavaElement)
+							.filter(Objects::nonNull)
+							.toArray(IJavaElement[]::new);
+				}
 				IJavaElement element = binding.getJavaElement();
 				if (element != null && (element instanceof IPackageFragment || element.exists())) {
 					return new IJavaElement[] { element };
@@ -262,7 +269,7 @@ class DOMCodeSelector {
 						}
 					}
 					// fallback to calling index, inspired/copied from SelectionEngine
-					IJavaElement[] indexMatch = findTypeInIndex(typeBinding.getPackage().getName(), typeBinding.getName());
+					IJavaElement[] indexMatch = findTypeInIndex(typeBinding.getPackage() != null ? typeBinding.getPackage().getName() : null, typeBinding.getName());
 					if (indexMatch.length > 0) {
 						return indexMatch;
 					}
