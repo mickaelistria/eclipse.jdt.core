@@ -62,7 +62,21 @@ pipeline {
 		}
 		stage("Build and Test with DOM-first") {
 			steps {
-				sh """
+				sh """#!/bin/bash -x
+					
+				java -version
+				
+				mkdir -p $WORKSPACE/tmp
+				
+				unset JAVA_TOOL_OPTIONS
+				unset _JAVA_OPTIONS
+				
+				# The max heap should be specified for tycho explicitly
+				# via configuration/argLine property in pom.xml
+				# export MAVEN_OPTS="-Xmx2G"
+				
+				mvn clean install -f org.eclipse.jdt.core.compiler.batch -DlocalEcjVersion=99.99 -Dmaven.repo.local=$WORKSPACE/.m2/repository -DcompilerBaselineMode=disable -DcompilerBaselineReplace=none
+				
 				# Then enable DOM-first
 				sed -i 's|</argLine>| -DCompilationUnit.DOM_BASED_OPERATIONS=true -DSourceIndexer.DOM_BASED_INDEXER=false -DICompilationUnitResolver=org.eclipse.jdt.core.dom.JavacCompilationUnitResolver -DAbstractImageBuilder.compiler=org.eclipse.jdt.internal.javac.JavacCompiler_</argLine>|g' */pom.xml
 				# and build/run it
@@ -72,8 +86,8 @@ pipeline {
 					-Dcompare-version-with-baselines.skip=false \
 					-Djava.io.tmpdir=$WORKSPACE/tmp -Dproject.build.sourceEncoding=UTF-8 \
 					-Dtycho.surefire.argLine="--add-modules ALL-SYSTEM -Dcompliance=1.8,11,17,21,22 -Djdt.performance.asserts=disabled -DCompilationUnit.DOM_BASED_OPERATIONS=true -DSourceIndexer.DOM_BASED_INDEXER=false -DICompilationUnitResolver=org.eclipse.jdt.core.dom.JavacCompilationUnitResolver -DAbstractImageBuilder.compiler=org.eclipse.jdt.internal.javac.JavacCompiler_ " \
-					-Dtycho.surefire.error=ignore -Dtycho.surefire.failure=ignore \
 					-DDetectVMInstallationsJob.disabled=true \
+					-Dtycho.surefire.error=ignore -Dtycho.surefire.failure=ignore \
 					-Dtycho.apitools.debug \
 					-Dcbi-ecj-version=99.99
 				"""
