@@ -96,6 +96,7 @@ class DOMCodeSelector {
 		if (currentAST == null) {
 			return new IJavaElement[0];
 		}
+		String rawText = this.unit.getSource().substring(offset, offset + length);
 		int initialOffset = offset, initialLength = length;
 		boolean insideComment = ((List<Comment>)currentAST.getCommentList()).stream()
 			.anyMatch(comment -> comment.getStartPosition() <= initialOffset && comment.getStartPosition() + comment.getLength() >= initialOffset + initialLength);
@@ -143,7 +144,7 @@ class DOMCodeSelector {
 				}
 			} while (changed);
 		}
-		String text = this.unit.getSource().substring(offset, offset + length).trim();
+		String trimmedText = rawText.trim();
 		NodeFinder finder = new NodeFinder(currentAST, offset, length);
 		final ASTNode node = finder.getCoveredNode() != null && finder.getCoveredNode().getStartPosition() > offset && finder.getCoveringNode().getStartPosition() + finder.getCoveringNode().getLength() > offset + length ?
 			finder.getCoveredNode() :
@@ -182,18 +183,32 @@ class DOMCodeSelector {
 			}
 		}
 		org.eclipse.jdt.core.dom.ImportDeclaration importDecl = findImportDeclaration(node);
-		if (node instanceof ExpressionMethodReference emr && emr.getExpression().getStartPosition() + emr.getExpression().getLength() <= offset && offset + length <= emr.getName().getStartPosition()
-			&& emr.getParent() instanceof MethodInvocation methodInvocation) {
-			// selected `::`
-			int index = methodInvocation.arguments().indexOf(emr);
-			return new IJavaElement[] {methodInvocation.resolveMethodBinding().getParameterTypes()[index].getDeclaredMethods()[0].getJavaElement()};
+		if (node instanceof ExpressionMethodReference emr &&
+			emr.getExpression().getStartPosition() + emr.getExpression().getLength() <= offset && offset + length <= emr.getName().getStartPosition()) {
+			if (!(rawText.isEmpty() || rawText.equals(":") || rawText.equals("::"))) { //$NON-NLS-1$ //$NON-NLS-2$
+				return new IJavaElement[0];
+			}
+			if (emr.getParent() instanceof MethodInvocation methodInvocation) {
+				int index = methodInvocation.arguments().indexOf(emr);
+				return new IJavaElement[] {methodInvocation.resolveMethodBinding().getParameterTypes()[index].getDeclaredMethods()[0].getJavaElement()};
+			}
+			if (emr.getParent() instanceof VariableDeclaration variableDeclaration) {
+				ITypeBinding requestedType = variableDeclaration.resolveBinding().getType();
+				if (requestedType.getDeclaredMethods().length == 1
+					&& requestedType.getDeclaredMethods()[0].getJavaElement() instanceof IMethod overridenMethod) {
+					return new IJavaElement[] { overridenMethod };
+				}
+			}
 		}
-		if (node instanceof LambdaExpression lambda
-			&& (text.equals("-") || text.equals(">") || text.equals("->")) //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
-			&& lambda.resolveMethodBinding() != null
-			&& lambda.resolveMethodBinding().getMethodDeclaration() != null
-			&& lambda.resolveMethodBinding().getMethodDeclaration().getJavaElement() != null) {
-			return new IJavaElement[] { lambda.resolveMethodBinding().getMethodDeclaration().getJavaElement() };
+		if (node instanceof LambdaExpression lambda) {
+			if (!(rawText.isEmpty() || rawText.equals("-") || rawText.equals(">") || rawText.equals("->"))) { //$NON-NLS-1$ //$NON-NLS-2$ //$NON-NLS-3$
+				return new IJavaElement[0]; // as requested by some tests
+			}
+			if (lambda.resolveMethodBinding() != null
+				&& lambda.resolveMethodBinding().getMethodDeclaration() != null
+				&& lambda.resolveMethodBinding().getMethodDeclaration().getJavaElement() != null) {
+				return new IJavaElement[] { lambda.resolveMethodBinding().getMethodDeclaration().getJavaElement() };
+			}
 		}
 		if (importDecl != null && importDecl.isStatic()) {
 			IBinding importBinding = importDecl.resolveBinding();
@@ -220,11 +235,11 @@ class DOMCodeSelector {
 					return new IJavaElement[] { type };
 				}
 				if (binding instanceof IPackageBinding packageBinding
-						&& text.length() > 0
-						&& !text.equals(packageBinding.getName())
-						&& packageBinding.getName().startsWith(text)) {
+						&& trimmedText.length() > 0
+						&& !trimmedText.equals(packageBinding.getName())
+						&& packageBinding.getName().startsWith(trimmedText)) {
 					// resolved a too wide node for package name, restrict to selected name only
-					IJavaElement fragment = this.unit.getJavaProject().findPackageFragment(text);
+					IJavaElement fragment = this.unit.getJavaProject().findPackageFragment(trimmedText);
 					if (fragment != null) {
 						return new IJavaElement[] { fragment };
 					}
