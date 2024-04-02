@@ -89,10 +89,12 @@ import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeLiteral;
 import org.eclipse.jdt.core.dom.TypeMethodReference;
+import org.eclipse.jdt.core.dom.UnnamedClass;
 import org.eclipse.jdt.core.dom.UsesDirective;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
 import org.eclipse.jdt.internal.compiler.classfmt.ClassFileConstants;
 import org.eclipse.jdt.internal.compiler.env.IElementInfo;
+import org.eclipse.jdt.internal.compiler.lookup.ExtraCompilerModifiers;
 import org.eclipse.jdt.internal.compiler.lookup.TypeConstants;
 import org.eclipse.jdt.internal.compiler.parser.RecoveryScanner;
 import org.eclipse.jdt.internal.compiler.parser.Scanner;
@@ -282,6 +284,26 @@ class DOMToModelPopulator extends ASTVisitor {
 	}
 	@Override
 	public void endVisit(ImportDeclaration decl) {
+		this.elements.pop();
+		this.infos.pop();
+	}
+
+	@Override
+	public boolean visit(UnnamedClass node) {
+		SourceType newElement = new SourceType(this.elements.peek(), this.root.getElementName().endsWith(".java") ? this.root.getElementName().substring(0, this.root.getElementName().length() - 5) : this.root.getElementName()); //$NON-NLS-1$
+		this.elements.push(newElement);
+		addAsChild(this.infos.peek(), newElement);
+		SourceTypeElementInfo newInfo = new SourceTypeElementInfo();
+		newInfo.setFlags(ExtraCompilerModifiers.AccUnnamed);
+		setSourceRange(newInfo, node);
+
+		newInfo.setHandle(newElement);
+		this.infos.push(newInfo);
+		this.toPopulate.put(newElement, newInfo);
+		return true;
+	}
+	@Override
+	public void endVisit(UnnamedClass node) {
 		this.elements.pop();
 		this.infos.pop();
 	}
