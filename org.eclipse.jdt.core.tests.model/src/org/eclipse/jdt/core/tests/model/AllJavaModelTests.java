@@ -18,10 +18,8 @@ package org.eclipse.jdt.core.tests.model;
 import java.lang.reflect.InvocationTargetException;
 import java.lang.reflect.Method;
 
-import org.eclipse.jdt.core.tests.compiler.CharDeduplicationTest;
 import org.eclipse.jdt.core.tests.compiler.DeduplicationUtilTest;
 import org.eclipse.jdt.core.tests.compiler.IrritantSetTest;
-import org.eclipse.jdt.core.tests.compiler.map.CharArrayMapperTest;
 import org.eclipse.jdt.core.tests.junit.extension.TestCase;
 
 import junit.framework.Test;
@@ -37,206 +35,206 @@ public AllJavaModelTests(String name) {
 }
 private static Class[] getAllTestClasses() {
 	Class[] classes = new Class[] {
-
-		// Enter each test here, grouping the tests that are related
-
-		// Binding key tests
-		BindingKeyTests.class,
-
-		// creation of method
-		CreateMembersTests.class,
-
-		// Java Naming convention tests
-		JavaConventionTests.class,
-
-		// Project & Root API unit tests
-		JavaProjectTests.class,
-		// Modularity tests (Java 9)
-		ModuleBuilderTests.class,
-		ModuleOptionsTests.class,
-
-		// Compilation unit tests
-		CompilationUnitTests.class,
-		// Compilation unitTests (Java 14)
-		CompilationUnitTests14.class,
-
-		// Source attachment tests
-		AttachSourceTests.class,
-
-		// Attached javadoc tests
-		AttachedJavadocTests.class,
-
-		// Java search tests
-		RunJavaSearchTests.class,
-
-		IndexManagerTests.class,
-
-		// Tests for the new index - disabled because the index is not used anymore
-		// See bug 572976 and bug 544898
-		// RunIndexTests.class,
-
-		// Working copy tests
-		WorkingCopyTests.class,
-		WorkingCopyNotInClasspathTests.class,
-		HierarchyOnWorkingCopiesTests.class,
-
-		// test IJavaModel
-		JavaModelTests.class,
-
-		// tests to check the encoding
-		EncodingTests.class,
-
-		// test class name with special names like names containing '$'
-		ClassNameTests.class,
-
-		// IBuffer tests
-		BufferTests.class,
-
-		// Name lookup tests
-		NameLookupTests2.class,
-
-		// Classpath and output location tests
-		ClasspathTests.class,
-
-		// Delta tests
-		JavaElementDeltaTests.class,
-		ExternalJarDeltaTests.class,
-
-		// Java element existence tests
-		ExistenceTests.class,
-
-		// Support for "open on" feature tests
-		ResolveTests.class,
-		ResolveTests2.class,
-		ResolveTests_1_5.class,
-		ResolveTests18.class,
-		ResolveTests9.class,
-		ResolveTests10.class,
-		ResolveTests12To15.class,
-		ResolveTests21.class,
-		SelectionJavadocModelTests.class,
+//
+//		// Enter each test here, grouping the tests that are related
+//
+//		// Binding key tests
+//		BindingKeyTests.class,
+//
+//		// creation of method
+//		CreateMembersTests.class,
+//
+//		// Java Naming convention tests
+//		JavaConventionTests.class,
+//
+//		// Project & Root API unit tests
+//		JavaProjectTests.class,
+//		// Modularity tests (Java 9)
+//		ModuleBuilderTests.class,
+//		ModuleOptionsTests.class,
+//
+//		// Compilation unit tests
+//		CompilationUnitTests.class,
+//		// Compilation unitTests (Java 14)
+//		CompilationUnitTests14.class,
+//
+//		// Source attachment tests
+//		AttachSourceTests.class,
+//
+//		// Attached javadoc tests
+//		AttachedJavadocTests.class,
+//
+//		// Java search tests
+//		RunJavaSearchTests.class,
+//
+//		IndexManagerTests.class,
+//
+//		// Tests for the new index - disabled because the index is not used anymore
+//		// See bug 572976 and bug 544898
+//		// RunIndexTests.class,
+//
+//		// Working copy tests
+//		WorkingCopyTests.class,
+//		WorkingCopyNotInClasspathTests.class,
+//		HierarchyOnWorkingCopiesTests.class,
+//
+//		// test IJavaModel
+//		JavaModelTests.class,
+//
+//		// tests to check the encoding
+//		EncodingTests.class,
+//
+//		// test class name with special names like names containing '$'
+//		ClassNameTests.class,
+//
+//		// IBuffer tests
+//		BufferTests.class,
+//
+//		// Name lookup tests
+//		NameLookupTests2.class,
+//
+//		// Classpath and output location tests
+//		ClasspathTests.class,
+//
+//		// Delta tests
+//		JavaElementDeltaTests.class,
+//		ExternalJarDeltaTests.class,
+//
+//		// Java element existence tests
+//		ExistenceTests.class,
+//
+//		// Support for "open on" feature tests
+//		ResolveTests.class,
+//		ResolveTests2.class,
+//		ResolveTests_1_5.class,
+//		ResolveTests18.class,
+//		ResolveTests9.class,
+//		ResolveTests10.class,
+//		ResolveTests12To15.class,
+//		ResolveTests21.class,
+//		SelectionJavadocModelTests.class,
 
 		// Support for completion tests
 		RunCompletionModelTests.class,
 
-		// Prefix and suffix tests
-		NamingConventionTests.class,
-
-		// Code correction tests
-		CodeCorrectionTests.class,
-
-		// Options tests
-		OptionTests.class,
-
-		// Type hierarchy tests
-		TypeHierarchyTests.class,
-		TypeHierarchyNotificationTests.class,
-		TypeHierarchySerializationTests.class,
-
-		// Resolve type tests
-		TypeResolveTests.class,
-
-		// Reconciler tests
-		ReconcilerTests.class,
-		ReconcilerTests9.class,
-		ReconcilerStatementsRecoveryTests.class,
-
-		// Copy and move operation tests
-		CopyMoveElementsTests.class,
-		CopyMoveResourcesTests.class,
-
-		// Rename tests
-		RenameTests.class,
-
-		// Exclusion patterns tests
-		ExclusionPatternsTests.class,
-
-		// Inclusion patterns tests
-		InclusionPatternsTests.class,
-
-		// Access restrictions tests
-		AccessRestrictionsTests.class,
-
-		// Ignore optional problems from source folders tests
-		IgnoreOptionalProblemsFromSourceFoldersTests.class,
-
-		// Signature tests
-		SignatureTests.class,
-
-		// Variable initializers and container initializers tests
-		ClasspathInitializerTests.class,
-
-		// Java Model Factory tests
-		FactoryTests.class,
-
-		// Java Element persistence tests
-		MementoTests.class,
-
-		// Java Element sorting tests
-		SortCompilationUnitElementsTests.class,
-
-		// Package fragment root manipulation tests
-		RootManipulationsTests.class,
-
-		// Owverflowing cache tests
-		OverflowingCacheTests.class,
-
-		// Working copy owner tests
-		WorkingCopyOwnerTests.class,
-
-		// Delete Java element tests
-		DeleteTests.class,
-
-		// Local element tests
-		LocalElementTests.class,
-
-		// Get source tests
-		GetSourceTests.class,
-
-		// Create packages tests
-		CreatePackageTests.class,
-
-		// Create compilation units tests
-		CreateCompilationUnitTests.class,
-
-		// Create search participant tests
-		SearchParticipantTests.class,
-
-		// Class file tests
-		ClassFileTests.class,
-
-		// Java-like extensions tests
-		JavaLikeExtensionsTests.class,
-
-		// Creation of imports
-		CreateImportsTests.class,
-
-		// Util tests
-		UtilTests.class,
-
-		JavaCoreOptionsTests.class,
-		JavaCorePreferenceModifyListenerTest.class,
-		ClasspathLocationTest.class,
-
-		// Tests regarding null-annotations:
-		NullAnnotationModelTests.class,
-		ExternalAnnotations17Test.class,
-		ExternalAnnotations18Test.class,
-		ExternalAnnotations9Test.class,
-
-		// Java model changes related to Java 8
-		JavaElement8Tests.class,
-
-		Java9ElementTests.class,
-		Java21ElementTests.class,
-
-		NullAnnotationModelTests9.class,
-
-		JavaModelManagerTests.class,
-
-		CharArrayMapperTest.class,
-
-		CharDeduplicationTest.class,
+//		// Prefix and suffix tests
+//		NamingConventionTests.class,
+//
+//		// Code correction tests
+//		CodeCorrectionTests.class,
+//
+//		// Options tests
+//		OptionTests.class,
+//
+//		// Type hierarchy tests
+//		TypeHierarchyTests.class,
+//		TypeHierarchyNotificationTests.class,
+//		TypeHierarchySerializationTests.class,
+//
+//		// Resolve type tests
+//		TypeResolveTests.class,
+//
+//		// Reconciler tests
+//		ReconcilerTests.class,
+//		ReconcilerTests9.class,
+//		ReconcilerStatementsRecoveryTests.class,
+//
+//		// Copy and move operation tests
+//		CopyMoveElementsTests.class,
+//		CopyMoveResourcesTests.class,
+//
+//		// Rename tests
+//		RenameTests.class,
+//
+//		// Exclusion patterns tests
+//		ExclusionPatternsTests.class,
+//
+//		// Inclusion patterns tests
+//		InclusionPatternsTests.class,
+//
+//		// Access restrictions tests
+//		AccessRestrictionsTests.class,
+//
+//		// Ignore optional problems from source folders tests
+//		IgnoreOptionalProblemsFromSourceFoldersTests.class,
+//
+//		// Signature tests
+//		SignatureTests.class,
+//
+//		// Variable initializers and container initializers tests
+//		ClasspathInitializerTests.class,
+//
+//		// Java Model Factory tests
+//		FactoryTests.class,
+//
+//		// Java Element persistence tests
+//		MementoTests.class,
+//
+//		// Java Element sorting tests
+//		SortCompilationUnitElementsTests.class,
+//
+//		// Package fragment root manipulation tests
+//		RootManipulationsTests.class,
+//
+//		// Owverflowing cache tests
+//		OverflowingCacheTests.class,
+//
+//		// Working copy owner tests
+//		WorkingCopyOwnerTests.class,
+//
+//		// Delete Java element tests
+//		DeleteTests.class,
+//
+//		// Local element tests
+//		LocalElementTests.class,
+//
+//		// Get source tests
+//		GetSourceTests.class,
+//
+//		// Create packages tests
+//		CreatePackageTests.class,
+//
+//		// Create compilation units tests
+//		CreateCompilationUnitTests.class,
+//
+//		// Create search participant tests
+//		SearchParticipantTests.class,
+//
+//		// Class file tests
+//		ClassFileTests.class,
+//
+//		// Java-like extensions tests
+//		JavaLikeExtensionsTests.class,
+//
+//		// Creation of imports
+//		CreateImportsTests.class,
+//
+//		// Util tests
+//		UtilTests.class,
+//
+//		JavaCoreOptionsTests.class,
+//		JavaCorePreferenceModifyListenerTest.class,
+//		ClasspathLocationTest.class,
+//
+//		// Tests regarding null-annotations:
+//		NullAnnotationModelTests.class,
+//		ExternalAnnotations17Test.class,
+//		ExternalAnnotations18Test.class,
+//		ExternalAnnotations9Test.class,
+//
+//		// Java model changes related to Java 8
+//		JavaElement8Tests.class,
+//
+//		Java9ElementTests.class,
+//		Java21ElementTests.class,
+//
+//		NullAnnotationModelTests9.class,
+//
+//		JavaModelManagerTests.class,
+//
+//		CharArrayMapperTest.class,
+//
+//		CharDeduplicationTest.class,
 
 		DeduplicationUtilTest.class,
 

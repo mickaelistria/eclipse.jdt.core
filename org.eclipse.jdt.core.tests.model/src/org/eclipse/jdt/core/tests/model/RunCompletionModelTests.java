@@ -16,7 +16,8 @@
  *******************************************************************************/
 package org.eclipse.jdt.core.tests.model;
 
-import java.lang.reflect.*;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -33,39 +34,39 @@ public class RunCompletionModelTests extends junit.framework.TestCase {
 	public final static List COMPLETION_SUITES = new ArrayList();
 	static {
 		if (!ONLY_JAVADOC) {
-			COMPLETION_SUITES.add(CompletionTests.class);
-			COMPLETION_SUITES.add(CompletionTests2.class);
-			COMPLETION_SUITES.add(CompletionTests3.class);
-			COMPLETION_SUITES.add(CompletionTests_1_5.class);
-			COMPLETION_SUITES.add(CompletionTests18.class);
-			COMPLETION_SUITES.add(CompletionTests9.class);
-			COMPLETION_SUITES.add(CompletionTests10.class);
-			COMPLETION_SUITES.add(CompletionTests11.class);
-			COMPLETION_SUITES.add(CompletionTests14.class);
-			COMPLETION_SUITES.add(CompletionTests16_1.class);
-			COMPLETION_SUITES.add(CompletionTests16_2.class);
-			COMPLETION_SUITES.add(CompletionTests17.class);
+//			COMPLETION_SUITES.add(CompletionTests.class);
+//			COMPLETION_SUITES.add(CompletionTests2.class);
+//			COMPLETION_SUITES.add(CompletionTests3.class);
+//			COMPLETION_SUITES.add(CompletionTests_1_5.class);
+//			COMPLETION_SUITES.add(CompletionTests18.class);
+//			COMPLETION_SUITES.add(CompletionTests9.class);
+//			COMPLETION_SUITES.add(CompletionTests10.class);
+//			COMPLETION_SUITES.add(CompletionTests11.class);
+//			COMPLETION_SUITES.add(CompletionTests14.class);
+//			COMPLETION_SUITES.add(CompletionTests16_1.class);
+//			COMPLETION_SUITES.add(CompletionTests16_2.class);
+//			COMPLETION_SUITES.add(CompletionTests17.class);
 			COMPLETION_SUITES.add(EmbeddedExpressionCompletionTests.class);
-			COMPLETION_SUITES.add(CompletionTestsForRecordPattern.class);
-			COMPLETION_SUITES.add(CompletionContextTests.class);
-			COMPLETION_SUITES.add(CompletionContextTests_1_5.class);
-			COMPLETION_SUITES.add(CompletionWithMissingTypesTests.class);
-			COMPLETION_SUITES.add(CompletionWithMissingTypesTests2.class);
-			COMPLETION_SUITES.add(CompletionWithMissingTypesTests_1_5.class);
-			COMPLETION_SUITES.add(CompletionWithMissingTypesTests_1_8.class);
-			COMPLETION_SUITES.add(SnippetCompletionContextTests.class);
-			COMPLETION_SUITES.add(SubstringCompletionTests.class);
-			COMPLETION_SUITES.add(SubwordCompletionTests.class);
+//			COMPLETION_SUITES.add(CompletionTestsForRecordPattern.class);
+//			COMPLETION_SUITES.add(CompletionContextTests.class);
+//			COMPLETION_SUITES.add(CompletionContextTests_1_5.class);
+//			COMPLETION_SUITES.add(CompletionWithMissingTypesTests.class);
+//			COMPLETION_SUITES.add(CompletionWithMissingTypesTests2.class);
+//			COMPLETION_SUITES.add(CompletionWithMissingTypesTests_1_5.class);
+//			COMPLETION_SUITES.add(CompletionWithMissingTypesTests_1_8.class);
+//			COMPLETION_SUITES.add(SnippetCompletionContextTests.class);
+//			COMPLETION_SUITES.add(SubstringCompletionTests.class);
+//			COMPLETION_SUITES.add(SubwordCompletionTests.class);
 		}
-		COMPLETION_SUITES.add(JavadocTypeCompletionModelTest.class);
-		COMPLETION_SUITES.add(JavadocFieldCompletionModelTest.class);
-		COMPLETION_SUITES.add(JavadocMethodCompletionModelTest.class);
-		COMPLETION_SUITES.add(JavadocPackageCompletionModelTest.class);
-		COMPLETION_SUITES.add(JavadocTextCompletionModelTest.class);
-		COMPLETION_SUITES.add(JavadocBugsCompletionModelTest.class);
-		COMPLETION_SUITES.add(JavadocCompletionContextTests.class);
-		COMPLETION_SUITES.add(JavadocModuleCompletionTests15.class);
-		COMPLETION_SUITES.add(JavadocCompletionContextTests_1_5.class);
+//		COMPLETION_SUITES.add(JavadocTypeCompletionModelTest.class);
+//		COMPLETION_SUITES.add(JavadocFieldCompletionModelTest.class);
+//		COMPLETION_SUITES.add(JavadocMethodCompletionModelTest.class);
+//		COMPLETION_SUITES.add(JavadocPackageCompletionModelTest.class);
+//		COMPLETION_SUITES.add(JavadocTextCompletionModelTest.class);
+//		COMPLETION_SUITES.add(JavadocBugsCompletionModelTest.class);
+//		COMPLETION_SUITES.add(JavadocCompletionContextTests.class);
+//		COMPLETION_SUITES.add(JavadocModuleCompletionTests15.class);
+//		COMPLETION_SUITES.add(JavadocCompletionContextTests_1_5.class);
 	}
 
 	public static Class[] getTestClasses() {

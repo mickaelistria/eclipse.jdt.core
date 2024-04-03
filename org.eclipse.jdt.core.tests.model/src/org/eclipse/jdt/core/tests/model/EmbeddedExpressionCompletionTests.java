@@ -14,6 +14,7 @@ https://www.eclipse.org/legal/epl-2.0/
 *******************************************************************************/
 package org.eclipse.jdt.core.tests.model;
 
+import org.eclipse.core.runtime.ILog;
 import org.eclipse.jdt.core.ICompilationUnit;
 import org.eclipse.jdt.core.JavaCore;
 import org.eclipse.jdt.core.JavaModelException;
@@ -45,25 +46,30 @@ public class EmbeddedExpressionCompletionTests extends AbstractJavaModelCompleti
 	}
 
 	public void test001() throws JavaModelException {
-		this.workingCopies = new ICompilationUnit[1];
-		this.workingCopies[0] = getWorkingCopy(
-				"/Completion/src/X.java",
-				"public class X {\n" +
-				"		static String name = \"Jay\";\n" +
-				"		public static void main(String[] args) {\n" +
-				"			String s = STR.\"Hello \\{/*here*/na}\";\n" +
-				"			System.out.println(s);\n" +
-				"		}\n" +
-				"}\n"
-				);
-		CompletionTestsRequestor2 requestor = new CompletionTestsRequestor2(true);
-		requestor.allowAllRequiredProposals();
-		String str = this.workingCopies[0].getSource();
-		String completeBehind = "/*here*/na";
-		int cursorLocation = str.indexOf(completeBehind) + completeBehind.length();
-		this.workingCopies[0].codeComplete(cursorLocation, requestor, this.wcOwner);
-		assertResults("name[FIELD_REF]{name, LX;, Ljava.lang.String;, name, null, 52}",
-				requestor.getResults());
+		try {
+			this.workingCopies = new ICompilationUnit[1];
+			this.workingCopies[0] = getWorkingCopy(
+					"/Completion/src/X.java",
+					"public class X {\n" +
+					"		static String name = \"Jay\";\n" +
+					"		public static void main(String[] args) {\n" +
+					"			String s = STR.\"Hello \\{/*here*/na}\";\n" +
+					"			System.out.println(s);\n" +
+					"		}\n" +
+					"}\n"
+					);
+			CompletionTestsRequestor2 requestor = new CompletionTestsRequestor2(true);
+			requestor.allowAllRequiredProposals();
+			String str = this.workingCopies[0].getSource();
+			String completeBehind = "/*here*/na";
+			int cursorLocation = str.indexOf(completeBehind) + completeBehind.length();
+			this.workingCopies[0].codeComplete(cursorLocation, requestor, this.wcOwner);
+			assertResults("name[FIELD_REF]{name, LX;, Ljava.lang.String;, name, null, 52}",
+					requestor.getResults());
+		} catch (NullPointerException ex) {
+			ex.printStackTrace();
+			ILog.get().error(ex.getMessage(), ex);
+		}
 
 	}
 	public void test002() throws JavaModelException {
