@@ -15,6 +15,8 @@ package org.eclipse.jdt.internal.core.dom;
 
 import java.util.List;
 
+import org.eclipse.core.runtime.ILog;
+import org.eclipse.jdt.core.dom.AST;
 import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.ASTParser;
 import org.eclipse.jdt.core.dom.ASTVisitor;
@@ -57,6 +59,15 @@ public class SourceRangeVerifier extends ASTVisitor {
 		ASTNode previous = null;
 
 		List properties = node.structuralPropertiesForType();
+		if (properties == null) {
+			String message = "Will crash!\n" +
+					"Node" + node +
+					"AST level: " + node.getAST().apiLevel() + " (latest=" + AST.getJLSLatest() + ")\n" +
+					"Preview? set=" + node.getAST().isPreviewEnabled() + " is=" + node.getAST().isPreviewEnabled() + "\n";
+			System.err.println(message);
+			System.out.println(message);
+			ILog.get().error(message);
+		}
 		for (Object p : properties) {
 			StructuralPropertyDescriptor property = (StructuralPropertyDescriptor) p;
 			if (property.isChildProperty()) {
