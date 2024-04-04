@@ -349,6 +349,18 @@ class DOMCodeSelector {
 				annotable.getNameSourceEnd() >= offset) {
 			return new IJavaElement[] { currentElement };
 		}
+		if (insideComment) {
+			String toSearch = trimmedText.isBlank() ? findWord(offset) : trimmedText;
+			String resolved = ((List<org.eclipse.jdt.core.dom.ImportDeclaration>)currentAST.imports()).stream()
+				.map(org.eclipse.jdt.core.dom.ImportDeclaration::getName)
+				.map(Name::toString)
+				.filter(importedPackage -> importedPackage.endsWith(toSearch))
+				.findAny()
+				.orElse(toSearch);
+			if (this.unit.getJavaProject().findType(resolved) instanceof IType type) {
+				return new IJavaElement[] { type };
+			}
+		}
 		// failback to lookup search
 		ASTNode currentNode = node;
 		while (currentNode != null && !(currentNode instanceof Type)) {
@@ -608,4 +620,12 @@ class DOMCodeSelector {
 		return new IJavaElement[0];
 	}
 
+	private String findWord(int offset) throws JavaModelException {
+		int start = offset;
+		String source = this.unit.getSource();
+		while (start >= 0 && Character.isJavaIdentifierPart(source.charAt(start))) start--;
+		int end = offset + 1;
+		while (end < source.length() && Character.isJavaIdentifierPart(source.charAt(end))) end++;
+		return source.substring(start, end);
+	}
 }
