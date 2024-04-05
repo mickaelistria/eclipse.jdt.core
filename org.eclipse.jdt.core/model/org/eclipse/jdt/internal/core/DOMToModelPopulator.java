@@ -310,6 +310,10 @@ class DOMToModelPopulator extends ASTVisitor {
 
 	@Override
 	public boolean visit(TypeDeclaration node) {
+		if (TypeConstants.MODULE_INFO_FILE_NAME_STRING.equals(this.root.getElementName())) {
+			// ignore as it can cause downstream issues
+			return false;
+		}
 		if (node.getAST().apiLevel() > 2) {
 			((List<org.eclipse.jdt.core.dom.TypeParameter>)node.typeParameters())
 				.stream()
