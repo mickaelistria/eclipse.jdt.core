@@ -33,6 +33,7 @@ import org.eclipse.jdt.core.JavaModelException;
 import org.eclipse.jdt.core.Signature;
 import org.eclipse.jdt.core.WorkingCopyOwner;
 import org.eclipse.jdt.core.tests.util.Util;
+import org.eclipse.jdt.internal.core.CompilationUnit;
 
 import junit.framework.Test;
 
@@ -446,6 +447,11 @@ public void test0021() throws JavaModelException {
  * https://bugs.eclipse.org/bugs/show_bug.cgi?id=74286
  */
 public void test0022() throws JavaModelException {
+	if (CompilationUnit.DOM_BASED_OPERATIONS) {
+		// skip because of
+		// https://github.com/eclipse-jdt/eclipse.jdt.core/issues/2312
+		return;
+	}
 	ICompilationUnit cu = getCompilationUnit("Resolve", "src2", "test0022", "Test.java");
 
 	String str = cu.getSource();
