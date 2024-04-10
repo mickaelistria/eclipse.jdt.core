@@ -164,15 +164,18 @@ class DOMCodeSelector {
 						if (typeBinding.getSuperclass() != null) {
 							types.add(typeBinding.getSuperclass());
 						}
-						var overridenMethods = types.stream().flatMap(type -> Arrays.stream(type.getDeclaredMethods()))
-							.filter(m -> methodBinding.overrides(m)) // should resolve to the 1st parent method which has doc
-							.map(IMethodBinding::getJavaElement)
-							.filter(Objects::nonNull)
-							.distinct()
-							.findFirst()
-							.map(element -> new IJavaElement[] { element });
-						if (overridenMethods.isPresent()) {
-							return overridenMethods.get();
+						while (!types.isEmpty()) {
+							ITypeBinding type = types.remove(0);
+							for (IMethodBinding m : Arrays.stream(type.getDeclaredMethods()).filter(methodBinding::overrides).toList()) {
+								if (m.getJavaElement() instanceof IMethod methodElement && methodElement.getJavadocRange() != null) {
+									return new IJavaElement[] { methodElement };
+								} else {
+									types.addAll(Arrays.asList(type.getInterfaces()));
+									if (type.getSuperclass() != null) {
+										types.add(type.getSuperclass());
+									}
+								}
+							}
 						}
 					}
 					IJavaElement element = methodBinding.getJavaElement();
