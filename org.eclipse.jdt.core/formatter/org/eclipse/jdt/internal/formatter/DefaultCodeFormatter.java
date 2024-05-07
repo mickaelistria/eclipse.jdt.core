@@ -90,6 +90,7 @@ public class DefaultCodeFormatter extends CodeFormatter {
 		FORMAT_TO_PARSER_KIND.put(K_EXPRESSION, ASTParser.K_EXPRESSION);
 	}
 
+	private Map<String, String> initialCompilerOptions;
 	private DefaultCodeFormatterOptions originalOptions;
 	private DefaultCodeFormatterOptions workingOptions;
 
@@ -121,14 +122,15 @@ public class DefaultCodeFormatter extends CodeFormatter {
 		initOptions(defaultCodeFormatterOptions, options);
 	}
 
-	private void initOptions(DefaultCodeFormatterOptions defaultCodeFormatterOptions, Map<String, String> options) {
-		if (options != null) {
-			this.originalOptions = new DefaultCodeFormatterOptions(options);
-			this.workingOptions = new DefaultCodeFormatterOptions(options);
-			this.oldCommentFormatOption = getOldCommentFormatOption(options);
-			String compilerSource = options.get(CompilerOptions.OPTION_Source);
+	private void initOptions(DefaultCodeFormatterOptions defaultCodeFormatterOptions, Map<String, String> compilerOptions) {
+		this.initialCompilerOptions = compilerOptions;
+		if (this.initialCompilerOptions != null) {
+			this.originalOptions = new DefaultCodeFormatterOptions(this.initialCompilerOptions);
+			this.workingOptions = new DefaultCodeFormatterOptions(this.initialCompilerOptions);
+			this.oldCommentFormatOption = getOldCommentFormatOption(this.initialCompilerOptions);
+			String compilerSource = this.initialCompilerOptions.get(CompilerOptions.OPTION_Source);
 			this.sourceLevel = compilerSource != null ? compilerSource : CompilerOptions.getLatestVersion();
-			this.previewEnabled = JavaCore.ENABLED.equals(options.get(JavaCore.COMPILER_PB_ENABLE_PREVIEW_FEATURES));
+			this.previewEnabled = JavaCore.ENABLED.equals(this.initialCompilerOptions.get(JavaCore.COMPILER_PB_ENABLE_PREVIEW_FEATURES));
 		} else {
 			Map<String, String> settings = DefaultCodeFormatterConstants.getJavaConventionsSettings();
 			this.originalOptions = new DefaultCodeFormatterOptions(settings);
@@ -342,10 +344,17 @@ public class DefaultCodeFormatter extends CodeFormatter {
 		}
 		parser.setKind(FORMAT_TO_PARSER_KIND.get(kind));
 
-		Map<String, String> parserOptions = JavaCore.getOptions();
-		parserOptions.put(CompilerOptions.OPTION_Source, this.sourceLevel);
+		final Map<String, String> parserOptions;
+		if (this.initialCompilerOptions == null) {
+			parserOptions = JavaCore.getOptions();
+			// maybe always use latest source level to allow pasting formatting
+			// newer code even if project uses older Java without failing?
+			parserOptions.put(CompilerOptions.OPTION_Source, this.sourceLevel);
+			parserOptions.put(CompilerOptions.OPTION_EnablePreviews, CompilerOptions.ENABLED); //TODO
+		} else {
+			parserOptions = new HashMap<>(this.initialCompilerOptions);
+		}
 		parserOptions.put(CompilerOptions.OPTION_DocCommentSupport, CompilerOptions.ENABLED);
-		parserOptions.put(CompilerOptions.OPTION_EnablePreviews, CompilerOptions.ENABLED); //TODO
 		parserOptions.put(CompilerOptions.OPTION_ReportPreviewFeatures, CompilerOptions.IGNORE);
 		parser.setCompilerOptions(parserOptions);
 		return parser;
