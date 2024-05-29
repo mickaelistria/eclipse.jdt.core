@@ -1288,14 +1288,6 @@ class JavacConverter {
 		if (javac instanceof JCBinary binary) {
 			InfixExpression res = this.ast.newInfixExpression();
 			commonSettings(res, javac);
-			Expression left = convertExpression(binary.getLeftOperand());
-			if (left != null) {
-				res.setLeftOperand(left);
-			}
-			Expression right = convertExpression(binary.getRightOperand());
-			if (right != null) {
-				res.setRightOperand(right);
-			}
 			res.setOperator(switch (binary.getTag()) {
 				case OR -> InfixExpression.Operator.CONDITIONAL_OR;
 				case AND -> InfixExpression.Operator.CONDITIONAL_AND;
@@ -1318,6 +1310,12 @@ class JavacConverter {
 				case MOD -> InfixExpression.Operator.REMAINDER;
 				default -> null;
 			});
+			Expression left = convertExpression(binary.getLeftOperand());
+			Expression right = convertExpression(binary.getRightOperand());
+			List<Expression> operands = collectOperands(res.getOperator(), left, right);
+			res.setLeftOperand(operands.removeFirst());
+			res.setRightOperand(operands.removeFirst());
+			res.extendedOperands().addAll(operands);
 			return res;
 		}
 		if (javac instanceof JCUnary unary) {
@@ -2914,5 +2912,21 @@ class JavacConverter {
 			.toList();
 	}
 
-
+	private List<Expression> collectOperands(org.eclipse.jdt.core.dom.InfixExpression.Operator operator, Expression... leftToRight) {
+		List<Expression> res = new ArrayList<>();
+		for (Expression exp : leftToRight) {
+			if (exp instanceof InfixExpression infix && Objects.equals(infix.getOperator(), operator)) {
+				infix.delete();
+				List<Expression> operands = new ArrayList<>(2 + infix.extendedOperands().size());
+				operands.add(infix.getLeftOperand());
+				operands.add(infix.getRightOperand());
+				operands.addAll(infix.extendedOperands());
+				res.addAll(collectOperands(operator, operands.toArray(Expression[]::new)));
+			} else {
+				exp.setParent(null, null);
+				res.add(exp);
+			}
+		}
+		return res;
+	}
 }
