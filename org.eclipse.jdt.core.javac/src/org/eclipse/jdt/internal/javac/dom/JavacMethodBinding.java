@@ -11,7 +11,6 @@
 package org.eclipse.jdt.internal.javac.dom;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -21,8 +20,6 @@ import java.util.stream.Collectors;
 import org.eclipse.jdt.core.IJavaElement;
 import org.eclipse.jdt.core.IType;
 import org.eclipse.jdt.core.Signature;
-import org.eclipse.jdt.core.dom.AST;
-import org.eclipse.jdt.core.dom.ASTNode;
 import org.eclipse.jdt.core.dom.IAnnotationBinding;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
@@ -31,8 +28,8 @@ import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.JavacBindingResolver;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
+import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
-import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.internal.core.util.Util;
 
 import com.sun.tools.javac.code.Flags;
@@ -86,8 +83,12 @@ public abstract class JavacMethodBinding implements IMethodBinding {
 	@Override
 	public int getModifiers() {
 		Set<javax.lang.model.element.Modifier> modifiers = this.methodSymbol.getModifiers();
-		if (this.getDeclaringClass().isInterface() && modifiers.contains(javax.lang.model.element.Modifier.ABSTRACT)) {
-			// not expected in binding
+		if (this.resolver.symbolToDom.get(this.methodSymbol) instanceof MethodDeclaration declaration
+			&& ((List<Modifier>)declaration.modifiers()).stream()
+				.filter(Modifier.class::isInstance)
+				.map(Modifier.class::cast)
+				.map(Modifier::getKeyword)
+				.noneMatch(ModifierKeyword.ABSTRACT_KEYWORD::equals)) {
 			modifiers = new TreeSet<javax.lang.model.element.Modifier>(modifiers);
 			modifiers.remove(javax.lang.model.element.Modifier.ABSTRACT);
 		}
