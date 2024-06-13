@@ -14,6 +14,7 @@ import java.io.IOException;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -178,8 +179,19 @@ public class JavacBindingResolver extends BindingResolver {
 				ILog.get().error(e.getMessage(), e);
 			}
 			this.symbolToDom = new HashMap<>();
-			this.converter.domToJavac.entrySet().forEach(entry ->
-				symbol(entry.getValue()).ifPresent(sym -> this.symbolToDom.put(sym, entry.getKey())));
+			for (Entry<ASTNode, JCTree> entry : this.converter.domToJavac.entrySet() ) {
+				var symbol = symbol(entry.getValue()).orElse(null);
+				if (symbol != null) {
+					var currentNode = this.symbolToDom.get(symbol);
+					var proposedNode = entry.getKey();
+					if (currentNode == null || (currentNode instanceof Name &&
+							(proposedNode instanceof MethodDeclaration
+									|| proposedNode instanceof VariableDeclaration
+									|| proposedNode instanceof TypeDeclaration))) {
+						this.symbolToDom.put(symbol, proposedNode);
+					}
+				}
+			}
 		}
 	}
 
