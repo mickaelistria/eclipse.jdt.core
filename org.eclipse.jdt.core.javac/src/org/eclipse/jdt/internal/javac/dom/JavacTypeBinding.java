@@ -1032,7 +1032,7 @@ public abstract class JavacTypeBinding implements ITypeBinding {
 
 	@Override
 	public boolean isGenericType() {
-		return this.type.isParameterized() && this.isGeneric;
+		return !isRawType() && this.type.isParameterized() && this.isGeneric;
 	}
 
 	@Override

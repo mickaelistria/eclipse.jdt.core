@@ -49,6 +49,7 @@ import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.TypeSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
 import com.sun.tools.javac.code.Type;
+import com.sun.tools.javac.code.Type.ForAll;
 import com.sun.tools.javac.code.Type.JCNoType;
 import com.sun.tools.javac.code.Type.MethodType;
 import com.sun.tools.javac.code.Type.TypeVar;
@@ -489,12 +490,21 @@ public abstract class JavacMethodBinding implements IMethodBinding {
 
 	@Override
 	public boolean isGenericMethod() {
-		return this.methodType.getTypeArguments().isEmpty() && !this.methodSymbol.getTypeParameters().isEmpty();
+		return (isConstructor() && getDeclaringClass().isGenericType())
+				|| (!this.methodSymbol.getTypeParameters().isEmpty() && isDeclaration)
+				|| (this.methodSymbol.type instanceof ForAll);
 	}
-
 	@Override
 	public boolean isParameterizedMethod() {
-		return this.getTypeArguments().length != 0;
+		return (isConstructor() && getDeclaringClass().isParameterizedType()) 
+			|| (!this.methodSymbol.getTypeParameters().isEmpty() && !isDeclaration);
+	}
+	@Override
+	public boolean isRawMethod() {
+		if (isConstructor()) {
+			return getDeclaringClass().isRawType() && this.methodSymbol.getTypeParameters().isEmpty();
+		}
+		return this.methodSymbol.getTypeParameters().isEmpty() && !this.methodSymbol.getTypeParameters().isEmpty();
 	}
 
 	@Override
@@ -555,11 +565,6 @@ public abstract class JavacMethodBinding implements IMethodBinding {
 		// i.e. drops the type arguments
 		// i.e. <code>this.<String>getValue(12);</code> will be converted back to <code><T> T getValue(int i) {</code>
 		return this.resolver.bindings.getMethodBinding(methodSymbol.type.asMethodType(), methodSymbol, null, true);
-	}
-
-	@Override
-	public boolean isRawMethod() {
-		return this.methodType.isRaw();
 	}
 
 	@Override
