@@ -415,6 +415,7 @@ public class JavacBindingResolver extends BindingResolver {
 				// symbols not already present: analyze
 				try {
 					this.javac.analyze();
+					JavacCompilationUnitResolver.cleanUp(this.context);
 				} catch (IOException e) {
 					ILog.get().error(e.getMessage(), e);
 				}

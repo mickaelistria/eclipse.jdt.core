@@ -93,6 +93,7 @@ import com.sun.tools.javac.parser.Scanner;
 import com.sun.tools.javac.parser.ScannerFactory;
 import com.sun.tools.javac.parser.Tokens.Comment.CommentStyle;
 import com.sun.tools.javac.parser.Tokens.TokenKind;
+import com.sun.tools.javac.platform.PlatformDescription;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.util.Context;
@@ -628,6 +629,7 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 			if ((flags & ICompilationUnit.FORCE_PROBLEM_DETECTION) != 0
 				|| (aptPath != null && aptPath.iterator().hasNext())) {
 				task.analyze();
+				cleanUp(context);
 			}
 
 			Throwable cachedThrown = null;
@@ -718,6 +720,8 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 						JavacBindingResolver resolver = new JavacBindingResolver(javaProject, task, context, converter, workingCopyOwner);
 						resolver.isRecoveringBindings = (flags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0;
 						ast.setBindingResolver(resolver);
+					} else {
+						cleanUp(context);
 					}
 					//
 					ast.setOriginalModificationCount(ast.modificationCount()); // "un-dirty" AST so Rewrite can process it
@@ -1012,7 +1016,30 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 				}
 			}
 		}
-
 		return false;
+	}
+
+	/**
+	 * Cleanup a context from elements that become useless upon analysis.
+	 * Elements that can still be useful (eg names, types) for binding resolution must
+	 * be retained.
+	 * @param context the context to clean up
+	 */
+	public static void cleanUp(Context context) {
+		// Some ZipFileSystem instances are still retained, while they don't seem
+		// useful at that stage. They're references by classSymbol->classfile (which
+		// is a ZipPath) -> ZipFileSystem -> cen (the bytes we don't care about anymore,
+		// but that we cannot dispose/free).
+		// Maybe this can be fixed in JDK cleaning the "cen" on ZipFileSystem#close ?
+		// Maybe we can try to get rid of all classfile field values on Symbols, or replace them by empty variants?
+		// 
+		try {
+			PlatformDescription platform = context.get(PlatformDescription.class);
+			if (platform != null) platform.close();
+			JavaFileManager fileManager = context.get(JavaFileManager.class);
+			if (fileManager != null) fileManager.close();
+		} catch (IOException ex) {
+			ILog.get().error(ex.getMessage(), ex);
+		}
 	}
 }
