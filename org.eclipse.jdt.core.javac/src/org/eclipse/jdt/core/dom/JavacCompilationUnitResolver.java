@@ -642,13 +642,16 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 		boolean docEnabled = JavaCore.ENABLED.equals(compilerOptions.get(JavaCore.COMPILER_DOC_COMMENT_SUPPORT));
 		JavacUtils.configureJavacContext(context, compilerOptions, javaProject, JavacUtils.isTest(javaProject, sourceUnits));
 		Options javacOptions = Options.instance(context);
-		if (!resolveBindings && (flags & ICompilationUnit.FORCE_PROBLEM_DETECTION) == 0) {
-			// most likely no need for linting
-			// resolveBindings still seems requested for tests
-			javacOptions.remove(Option.XLINT.primaryName);
-			javacOptions.remove(Option.XLINT_CUSTOM.primaryName);
+		if ((flags & ICompilationUnit.FORCE_PROBLEM_DETECTION) == 0) {
+			// most likely no need for doclint
 			javacOptions.remove(Option.XDOCLINT.primaryName);
 			javacOptions.remove(Option.XDOCLINT_CUSTOM.primaryName);
+			// some tests seem to highlight that errors are still
+			// requested when resolving bindings
+			if (!resolveBindings) {
+				javacOptions.remove(Option.XLINT.primaryName);
+				javacOptions.remove(Option.XLINT_CUSTOM.primaryName);
+			}
 		}
 		javacOptions.put(Option.PROC, "only");
 		Optional.ofNullable(Platform.getProduct())
