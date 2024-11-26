@@ -129,16 +129,28 @@ class DOMCompletionContext extends CompletionContext {
 
 	@Override
 	public int getTokenStart() {
+		if (node instanceof Name || node instanceof StringLiteral || node instanceof NumberLiteral) {
+			return node.getStartPosition();
+		}
+		if (token.length == 0) {
+			return offset;
+		}
 		return node.getStartPosition();
 	}
 	@Override
 	public int getTokenEnd() {
+		if (node instanceof Name || node instanceof StringLiteral || node instanceof NumberLiteral) {
+			return node.getStartPosition() + node.getLength() - 1;
+		}
+		if (token.length == 0) {
+			return offset - 1;
+		}
 		return node.getStartPosition() + node.getLength() - 1;
 	}
 
 	@Override
 	public int getTokenKind() {
-		if (node instanceof Name) {
+		if (node instanceof Name || node instanceof Block || node instanceof AbstractTypeDeclaration) {
 			return TOKEN_KIND_NAME;
 		}
 		if (node instanceof StringLiteral) {
