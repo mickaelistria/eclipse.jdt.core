@@ -643,13 +643,15 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 		JavacUtils.configureJavacContext(context, compilerOptions, javaProject, JavacUtils.isTest(javaProject, sourceUnits));
 		Options javacOptions = Options.instance(context);
 		javacOptions.put("allowStringFolding", Boolean.FALSE.toString()); // we need to keep strings as authored
-		if ((focalPoint >= 0 || !resolveBindings) && (flags & ICompilationUnit.FORCE_PROBLEM_DETECTION) == 0) {
+		if ((flags & ICompilationUnit.FORCE_PROBLEM_DETECTION) == 0) {
 			// most likely no need for linting
-			// resolveBindings still seems requested for tests
-			javacOptions.remove(Option.XLINT.primaryName);
-			javacOptions.remove(Option.XLINT_CUSTOM.primaryName);
-			javacOptions.remove(Option.XDOCLINT.primaryName);
 			javacOptions.remove(Option.XDOCLINT_CUSTOM.primaryName);
+			javacOptions.remove(Option.XDOCLINT.primaryName);
+			if (focalPoint >= 0 || !resolveBindings) {
+				// resolveBindings still seems requested for tests
+				javacOptions.remove(Option.XLINT.primaryName);
+				javacOptions.remove(Option.XLINT_CUSTOM.primaryName);
+			}
 		}
 		javacOptions.put(Option.PROC, "only");
 		Optional.ofNullable(Platform.getProduct())
