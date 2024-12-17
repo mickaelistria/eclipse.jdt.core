@@ -522,8 +522,20 @@ public class DOMToModelPopulator extends ASTVisitor {
 		if (this.infos.peek() instanceof SourceTypeElementInfo parentInfo) {
 			parentInfo.addCategories(newElement, getCategories(method));
 		}
+		LinkedHashSet<Type> exceptions = new LinkedHashSet<>();
+		if (method.getJavadoc() != null) {
+			((List<TagElement>)method.getJavadoc().tags()).stream()
+				.filter(tag -> TagElement.TAG_THROWS.equals(tag.getTagName()))
+				.map(tag -> tag.fragments().get(0))
+				.filter(Type.class::isInstance)
+				.map(Type.class::cast)
+				.forEach(exceptions::add);
+		}
 		if (method.getAST().apiLevel() >= AST.JLS8) {
-			info.setExceptionTypeNames(((List<Type>)method.thrownExceptionTypes()).stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
+			exceptions.addAll(method.thrownExceptionTypes());
+		}
+		if (!exceptions.isEmpty()) {
+			info.setExceptionTypeNames(exceptions.stream().map(Type::toString).map(String::toCharArray).toArray(char[][]::new));
 		}
 		setSourceRange(info, method);
 		boolean isDeprecated = isNodeDeprecated(method);
