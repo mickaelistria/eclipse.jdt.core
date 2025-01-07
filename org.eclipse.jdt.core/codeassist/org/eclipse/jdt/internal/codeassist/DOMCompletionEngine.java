@@ -699,6 +699,9 @@ public class DOMCompletionEngine implements Runnable {
 				completeJavadocInlineTags(tagElement);
 				suggestDefaultCompletions = false;
 			}
+			if (context instanceof CompilationUnit && CharOperation.prefixEquals(completionContext.getToken(), Keywords.PACKAGE)) {
+				this.requestor.accept(createKeywordProposal(Keywords.PACKAGE, completionContext.getTokenStart(), completionContext.getTokenEnd()));
+			}
 
 			// check for accessible bindings to potentially turn into completions.
 			// currently, this is always run, even when not using the default completion,
