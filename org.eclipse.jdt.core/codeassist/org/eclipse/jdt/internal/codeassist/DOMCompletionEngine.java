@@ -2093,7 +2093,7 @@ public class DOMCompletionEngine implements Runnable {
 				}
 				if (!inheritedValue && !this.modelUnit.getType(topLevelClass.getName()).exists()) {
 					if (this.qualifiedPrefix.equals(this.prefix) && !this.modelUnit.getJavaProject().getOption(JavaCore.CODEASSIST_SUGGEST_STATIC_IMPORTS, true).equals(JavaCore.DISABLED)) {
-						if (((List<ImportDeclaration>)this.unit.imports()).stream().filter(ImportDeclaration::isStatic).map(ImportDeclaration::resolveBinding).noneMatch(binding::isEqualTo)) {
+						if (!isStaticallyImported(variableBinding)) {
 							res.setRequiredProposals(new CompletionProposal[] { toStaticImportProposal(variableBinding) });
 						}
 					} else {
