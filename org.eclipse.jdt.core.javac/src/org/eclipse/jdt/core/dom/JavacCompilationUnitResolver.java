@@ -643,6 +643,8 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 			javacOptions.put(Option.XLINT_CUSTOM, "none");
 			javacOptions.remove(Option.XDOCLINT.primaryName);
 			javacOptions.put(Option.XDOCLINT_CUSTOM, "none");
+			javacOptions.put("should-stop.ifError", CompileState.ATTR.name());
+			javacOptions.put("should-stop.ifNoError", CompileState.ATTR.name());
 		}
 		javacOptions.put(Option.PROC, "only");
 		Optional.ofNullable(Platform.getProduct())
