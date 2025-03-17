@@ -32,12 +32,12 @@ import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.IVariableBinding;
 import org.eclipse.jdt.core.dom.JavacBindingResolver;
-import org.eclipse.jdt.core.dom.JavacBindingResolver.BindingKeyException;
 import org.eclipse.jdt.core.dom.LambdaExpression;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.TypeParameter;
+import org.eclipse.jdt.core.dom.JavacBindingResolver.BindingKeyException;
 import org.eclipse.jdt.internal.codeassist.DOMCompletionUtil;
 import org.eclipse.jdt.internal.core.BinaryMethod;
 import org.eclipse.jdt.internal.core.JavaElement;
@@ -50,11 +50,11 @@ import org.eclipse.jdt.internal.core.util.Util;
 import com.sun.tools.javac.code.Flags;
 import com.sun.tools.javac.code.Kinds;
 import com.sun.tools.javac.code.Symbol;
+import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.MethodSymbol;
 import com.sun.tools.javac.code.Symbol.TypeSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
-import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ForAll;
 import com.sun.tools.javac.code.Type.JCNoType;
 import com.sun.tools.javac.code.Type.MethodType;
@@ -287,10 +287,35 @@ public abstract class JavacMethodBinding implements IMethodBinding {
 
 	private IMethod resolved(IMethod from) {
 		if (from instanceof SourceMethod && !(from instanceof ResolvedSourceMethod)) {
-			return new ResolvedSourceMethod((JavaElement)from.getParent(), from.getElementName(), from.getParameterTypes(), computeKeyWithThrowsFromJavadoc(from), from.getOccurrenceCount());
+			return new ResolvedSourceMethod((JavaElement)from.getParent(), from.getElementName(), from.getParameterTypes(), null /* override getKey() */, from.getOccurrenceCount()) {
+				private String key = null;
+				// we override getKey() to make computation lazy
+				@Override
+				public String getKey() {
+					if (key == null) {
+						key = computeKeyWithThrowsFromJavadoc(from);
+					}
+					return key;
+				}
+			};
 		}
 		if (from instanceof BinaryMethod && !(from instanceof ResolvedBinaryMethod)) {
-			return new ResolvedBinaryMethod((JavaElement)from.getParent(), from.getElementName(), from.getParameterTypes(), computeKeyWithThrowsFromJavadoc(from), from.getOccurrenceCount());
+			return new ResolvedBinaryMethod((JavaElement)from.getParent(), from.getElementName(), from.getParameterTypes(), null /* override getKey() */, from.getOccurrenceCount())  {
+				private String key = null;
+				// we override getKey() to make computation lazy
+				@Override
+				public String getKey() {
+					if (key == null) {
+						key = computeKeyWithThrowsFromJavadoc(from);
+					}
+					return key;
+				}
+				@Override
+				public String getKey(boolean openForcibly) {
+					return getKey();
+				}
+				
+			};
 		}
 		return from;
 	}
