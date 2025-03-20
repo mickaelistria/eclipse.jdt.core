@@ -25,6 +25,7 @@
 
   <properties>
     <tycho.scmUrl>scm:git:https://github.com/eclipse-jdt/eclipse.jdt.core.git</tycho.scmUrl>
+    <tycho.version>5.0.0-SNAPSHOT</tycho.version>
   </properties>
 
   <!-- 
@@ -85,7 +86,7 @@
         	<groupId>org.eclipse.tycho</groupId>
         	<artifactId>target-platform-configuration</artifactId>
         	<configuration>
-        		<executionEnvironment>JavaSE-23</executionEnvironment> <!-- Overrides one from .target -->
+        		<executionEnvironment>JavaSE-24</executionEnvironment> <!-- Overrides one from .target -->
         	</configuration>
         </plugin>
         <plugin>

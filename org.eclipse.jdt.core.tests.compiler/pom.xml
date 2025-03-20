@@ -107,7 +107,6 @@
 			<tycho.surefire.argLine>--add-modules ALL-SYSTEM -Dcompliance=1.8,11,17,21,23</tycho.surefire.argLine>
 		</properties>
 	</profile>
-<<<<<<< HEAD
 	<profile>
 		<id>test-on-javase-24</id>
 		<build>
@@ -126,7 +125,7 @@
 			</plugins>
 		</build>
 		<properties>
-			<tycho.surefire.argLine>--add-modules ALL-SYSTEM -Dcompliance=1.8,17,21,23</tycho.surefire.argLine>
+			<tycho.surefire.argLine>--add-modules ALL-SYSTEM -Dcompliance=1.8,17,21,24</tycho.surefire.argLine>
 		</properties>
 	</profile>
 	</profiles>

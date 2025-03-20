@@ -49,10 +49,10 @@ import com.sun.tools.javac.code.Symbol.ClassSymbol;
 import com.sun.tools.javac.code.Symbol.PackageSymbol;
 import com.sun.tools.javac.code.Symbol.TypeSymbol;
 import com.sun.tools.javac.code.Symbol.VarSymbol;
+import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.code.Type;
 import com.sun.tools.javac.code.Type.ArrayType;
 import com.sun.tools.javac.code.Type.MethodType;
-import com.sun.tools.javac.code.Type.UnknownType;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCFieldAccess;
 import com.sun.tools.javac.tree.JCTree.JCIdent;
@@ -77,10 +77,12 @@ public class JavacTaskListener implements TaskListener {
 	));
 
 	private static final char[] MODULE_INFO_NAME = "module-info".toCharArray();
+	private final Symtab symtab;
 
-	public JavacTaskListener(JavacCompiler javacCompiler, JavacConfig config, IProblemFactory problemFactory, Map<JavaFileObject, ICompilationUnit> fileObjectToCUMap) {
+	public JavacTaskListener(JavacCompiler javacCompiler, JavacConfig config, IProblemFactory problemFactory, Map<JavaFileObject, ICompilationUnit> fileObjectToCUMap, Symtab symtab) {
 		this.javacCompiler = javacCompiler;
 		this.config = config;
+		this.symtab = symtab;
 		this.problemFactory = new UnusedProblemFactory(problemFactory, config.compilerOptions());
 		this.fileObjectToCUMap = fileObjectToCUMap;
 		Path dir = null;
@@ -177,7 +179,7 @@ public class JavacTaskListener implements TaskListener {
 				public Void visitMemberSelect(MemberSelectTree node, Void p) {
 					if (node instanceof JCFieldAccess field) {
 						if (field.sym != null &&
-							!(field.type instanceof MethodType || field.type instanceof UnknownType)) {
+							!(field.type instanceof MethodType || field.type == JavacTaskListener.this.symtab.unknownType)) {
 							recordQualifiedReference(node.toString(), false);
 							if (field.sym instanceof VarSymbol) {
 								TypeSymbol elementSymbol = field.type.tsym;

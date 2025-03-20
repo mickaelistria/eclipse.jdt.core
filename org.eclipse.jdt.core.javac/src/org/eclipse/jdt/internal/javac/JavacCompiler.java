@@ -52,6 +52,7 @@ import com.sun.source.util.TaskEvent;
 import com.sun.source.util.TaskListener;
 import com.sun.tools.javac.api.JavacTool;
 import com.sun.tools.javac.api.MultiTaskListener;
+import com.sun.tools.javac.code.Symtab;
 import com.sun.tools.javac.comp.AttrContext;
 import com.sun.tools.javac.comp.Env;
 import com.sun.tools.javac.file.CacheFSInfo;
@@ -61,10 +62,10 @@ import com.sun.tools.javac.main.Option;
 import com.sun.tools.javac.tree.JCTree.JCClassDecl;
 import com.sun.tools.javac.tree.JCTree.JCCompilationUnit;
 import com.sun.tools.javac.util.Context;
-import com.sun.tools.javac.util.Options;
-import com.sun.tools.javac.util.Pair;
 import com.sun.tools.javac.util.Context.Factory;
 import com.sun.tools.javac.util.Context.Key;
+import com.sun.tools.javac.util.Options;
+import com.sun.tools.javac.util.Pair;
 
 public class JavacCompiler extends Compiler {
 	public static final Key<Set<JavaFileObject>> FILES_WITH_ERRORS_KEY = new Key<>();
@@ -109,10 +110,10 @@ public class JavacCompiler extends Compiler {
 				return true;
 			}).toList();
 
-		JavacTaskListener javacListener = new JavacTaskListener(this, this.compilerConfig, this.problemFactory, this.fileObjectToCUMap);
+		Context javacContext = new Context();
+		JavacTaskListener javacListener = new JavacTaskListener(this, this.compilerConfig, this.problemFactory, this.fileObjectToCUMap, Symtab.instance(javacContext));
 		int unitIndex = 0;
 		var tool = ToolProvider.getSystemJavaCompiler();
-		Context javacContext = new Context();
 		CacheFSInfo.preRegister(javacContext);
 		ProceedOnErrorTransTypes.preRegister(javacContext);
 		ProceedOnErrorGen.preRegister(javacContext);
