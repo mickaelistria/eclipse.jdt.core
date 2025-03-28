@@ -4091,10 +4091,18 @@ public class DOMCompletionEngine implements ICompletionEngine {
 	}
 
 	private CompletionProposal toProposal(TypeNameMatch typeNameMatch) {
-		return toProposal(typeNameMatch.getType(), typeNameMatch.getAccessibility());
+		return toProposal(typeNameMatch.getType(), typeNameMatch.getAccessibility(), typeNameMatch.getModifiers());
 	}
 
 	private CompletionProposal toProposal(IType type, int access) {
+		try {
+			return toProposal(type, access, type.getFlags());
+		} catch (JavaModelException ex) {
+			return toProposal(type, access, 0);
+		}
+	}
+
+	private CompletionProposal toProposal(IType type, int access, int modifiers) {
 		DOMInternalCompletionProposal res = createProposal(CompletionProposal.TYPE_REF);
 		char[] simpleName = type.getElementName().toCharArray();
 		char[] signature = SignatureUtils.createSignature(type).toCharArray();
@@ -4169,11 +4177,7 @@ public class DOMCompletionEngine implements ICompletionEngine {
 		} else {
 			res.setReplaceRange(this.toComplete.getStartPosition(), this.offset);
 		}
-		try {
-			res.setFlags(type.getFlags());
-		} catch (JavaModelException ex) {
-			ILog.get().error(ex.getMessage(), ex);
-		}
+		res.setFlags(modifiers);
 		if (this.toComplete instanceof SimpleName) {
 			res.setTokenRange(this.toComplete.getStartPosition(), this.toComplete.getStartPosition() + this.toComplete.getLength());
 		} else if (this.toComplete instanceof MarkerAnnotation) {
