@@ -15,15 +15,19 @@ import java.util.Objects;
 import java.util.stream.Stream;
 
 import org.eclipse.jdt.core.compiler.CharOperation;
+import org.eclipse.jdt.core.dom.ExpressionMethodReference;
 import org.eclipse.jdt.core.dom.IBinding;
 import org.eclipse.jdt.core.dom.IMethodBinding;
 import org.eclipse.jdt.core.dom.ITypeBinding;
 import org.eclipse.jdt.core.dom.MethodInvocation;
+import org.eclipse.jdt.core.dom.MethodReference;
 import org.eclipse.jdt.core.dom.Modifier;
 import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.SimpleName;
 import org.eclipse.jdt.core.dom.SingleVariableDeclaration;
 import org.eclipse.jdt.core.dom.SuperMethodInvocation;
+import org.eclipse.jdt.core.dom.SuperMethodReference;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.internal.core.BinaryMethod;
 import org.eclipse.jdt.internal.core.search.DOMASTNodeUtils;
 import org.eclipse.jdt.internal.core.search.LocatorResponse;
@@ -125,6 +129,23 @@ public class DOMMethodLocator extends DOMPatternLocator {
 		return toResponse(nodeSet.addMatch(node, level), true);
 	}
 	@Override
+	public LocatorResponse match(MethodReference node, NodeSetWrapper nodeSet, MatchLocator locator) {
+		SimpleName name = node instanceof TypeMethodReference typeMethodRef ? typeMethodRef.getName() :
+			node instanceof SuperMethodReference superMethodRef ? superMethodRef.getName() :
+			node instanceof ExpressionMethodReference exprMethodRef ? exprMethodRef.getName() :
+			null;
+		if (name == null) {
+			return toResponse(IMPOSSIBLE_MATCH);
+		}
+		if (this.locator.matchesName(this.locator.pattern.selector, name.getIdentifier().toCharArray())) {
+			nodeSet.setMustResolve(true);
+			return toResponse(nodeSet.addMatch(node, POSSIBLE_MATCH), true);
+		} else {
+			return toResponse(IMPOSSIBLE_MATCH);
+		}
+
+	}
+	@Override
 	public LocatorResponse match(org.eclipse.jdt.core.dom.Expression expression, NodeSetWrapper nodeSet, MatchLocator locator) {
 		int level = expression instanceof SuperMethodInvocation node ? this.matchReference(node.getName(), node.arguments(), nodeSet) :
 			IMPOSSIBLE_MATCH;
@@ -144,7 +165,6 @@ public class DOMMethodLocator extends DOMPatternLocator {
 		boolean matchesPrefix = this.locator.pattern.declaringPackageName == null ? true :
 			name.startsWith(new String(this.locator.pattern.declaringPackageName));
 		int level = matchesLastSegment && matchesPrefix ? POSSIBLE_MATCH : IMPOSSIBLE_MATCH;
-		nodeSet.setMustResolve(true);
 		return toResponse(level);
 	}
 
