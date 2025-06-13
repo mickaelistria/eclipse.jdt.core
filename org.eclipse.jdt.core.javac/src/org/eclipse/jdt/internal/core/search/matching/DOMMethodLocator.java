@@ -369,6 +369,9 @@ public class DOMMethodLocator extends DOMPatternLocator {
 			boolean skipImpossibleArg, int level, boolean bindingIsDeclaration) {
 		boolean potentialMatchOnly = false;
 		if (this.locator.pattern.hasMethodArguments()) {
+			if (this.locator.pattern.focus instanceof IMethod focusMethod && focusMethod.equals(method.getJavaElement())) {
+				return level;
+			}
 			ITypeBinding[] argBindings = method.getTypeArguments();
 			char[][] goal = this.locator.pattern.methodArguments;
 			if( goal == null || goal.length == 0) {
