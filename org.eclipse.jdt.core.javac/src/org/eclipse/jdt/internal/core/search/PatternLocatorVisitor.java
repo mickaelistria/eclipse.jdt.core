@@ -10,8 +10,6 @@
  *******************************************************************************/
 package org.eclipse.jdt.internal.core.search;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Function;
 
@@ -38,7 +36,6 @@ import org.eclipse.jdt.core.dom.MemberValuePair;
 import org.eclipse.jdt.core.dom.MethodDeclaration;
 import org.eclipse.jdt.core.dom.MethodInvocation;
 import org.eclipse.jdt.core.dom.MethodRef;
-import org.eclipse.jdt.core.dom.Name;
 import org.eclipse.jdt.core.dom.NameQualifiedType;
 import org.eclipse.jdt.core.dom.NullLiteral;
 import org.eclipse.jdt.core.dom.NumberLiteral;
@@ -59,6 +56,7 @@ import org.eclipse.jdt.core.dom.SuperMethodReference;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
 import org.eclipse.jdt.core.dom.TypeLiteral;
+import org.eclipse.jdt.core.dom.TypeMethodReference;
 import org.eclipse.jdt.core.dom.TypeParameter;
 import org.eclipse.jdt.core.dom.UnionType;
 import org.eclipse.jdt.core.dom.VariableDeclarationFragment;
@@ -153,6 +151,10 @@ class PatternLocatorVisitor extends ASTVisitor {
 		return defaultVisitImplementation(node, (x,y) -> y.match(node, this.nodeSet, this.locator));
 	}
 	@Override
+	public boolean visit(TypeMethodReference node) {
+		return defaultVisitImplementation(node, (x,y) -> y.match(node, this.nodeSet, this.locator));
+	}
+	@Override
 	public boolean visit(SuperMethodReference node) {
 		return defaultVisitImplementation(node, (x,y) -> y.match(node, this.nodeSet, this.locator));
 	}
@@ -183,66 +185,24 @@ class PatternLocatorVisitor extends ASTVisitor {
 
 	private boolean visitType(Type node) {
 		LocatorResponse resp = defaultVisitImplementationWithFunc(node, (x,y) -> y.match(node, this.nodeSet, this.locator), DOMASTNodeUtils::getBinding);
-		return resp.level() == 0 && resp.canVisitChildren();
+		return resp.canVisitChildren();
 	}
 
 	@Override
 	public boolean visit(SimpleType type) {
-		visitType(type);
-		Name n = type.getName();
-		if( n instanceof QualifiedName qn ) {
-			Name qualifier = qn.getQualifier();
-			if( qualifier instanceof SimpleName sn1 ) {
-				sn1.accept(this);
-			} else if( qualifier instanceof QualifiedName qn1) {
-				qn1.accept(this);
-			}
-		}
-		return false; // No need to visit single name child
+		return visitType(type);
 	}
 	@Override
 	public boolean visit(QualifiedType type) {
-		boolean ret = visitType(type);
-		if( !ret ) {
-			visitAllDescendentTypeArguments(type);
-		}
-		return ret;
+		return visitType(type);
 	}
 	@Override
 	public boolean visit(NameQualifiedType type) {
-		boolean ret = visitType(type);
-		if( !ret ) {
-			visitAllDescendentTypeArguments(type);
-		}
-		return ret;
+		return visitType(type);
 	}
 	@Override
 	public boolean visit(ParameterizedType node) {
-		LocatorResponse resp = defaultVisitImplementationWithFunc(node, (x,y) -> y.match(node, this.nodeSet, this.locator), DOMASTNodeUtils::getBinding);
-		if( resp.level() == 0 && resp.canVisitChildren() ) {
-			return true;
-		}
-		// always visit the type arguments though
-		visitAllDescendentTypeArguments(node);
-		return false;
-	}
-
-	private void visitAllDescendentTypeArguments(Type node) {
-		// This feel suspect to me... maybe repeats nodes... idk yet
-		node.accept(new ASTVisitor() {
-			@Override
-			public boolean visit(ParameterizedType node) {
-				visitTypeArgumentList(node.typeArguments());
-				return true;
-			}
-		});
-	}
-
-	protected void visitTypeArgumentList(List typeArgs) {
-		ArrayList<Object> args = new ArrayList<Object>(typeArgs);
-		for( Object t : args ) {
-			((Type)t).accept(this);
-		}
+		return visitType(node);
 	}
 
 	@Override
@@ -287,7 +247,9 @@ class PatternLocatorVisitor extends ASTVisitor {
 			loc == EnumDeclaration.NAME_PROPERTY ||
 			loc == EnumConstantDeclaration.NAME_PROPERTY ||
 			loc == AnnotationTypeDeclaration.NAME_PROPERTY ||
-			loc == MethodDeclaration.NAME_PROPERTY) {
+			loc == MethodDeclaration.NAME_PROPERTY ||
+			loc == SimpleType.NAME_PROPERTY ||
+			(loc == QualifiedName.NAME_PROPERTY && node.getParent().getLocationInParent() == SimpleType.NAME_PROPERTY)) {
 			return false; // skip as parent was most likely already matched
 		}
 		LocatorResponse resp = defaultVisitImplementationWithFunc(node, (x,y) -> y.match(node, this.nodeSet, this.locator), DOMASTNodeUtils::getBinding);
