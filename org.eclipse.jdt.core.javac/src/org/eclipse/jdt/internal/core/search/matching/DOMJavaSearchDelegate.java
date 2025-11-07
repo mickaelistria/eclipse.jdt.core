@@ -187,6 +187,10 @@ public class DOMJavaSearchDelegate implements IJavaSearchDelegate {
 		astParser.setBindingsRecovery(true);
 		if (owner != null)
 			astParser.setWorkingCopyOwner(owner);
+		if (locator.pattern instanceof MethodPattern methodPattern &&
+			methodPattern.findDeclarations && !methodPattern.findReferences) {
+			astParser.setIgnoreMethodBodies(true);
+		}
 
 		org.eclipse.jdt.core.dom.CompilationUnit[] domUnits = new org.eclipse.jdt.core.dom.CompilationUnit[possibleMatches.length];
 
