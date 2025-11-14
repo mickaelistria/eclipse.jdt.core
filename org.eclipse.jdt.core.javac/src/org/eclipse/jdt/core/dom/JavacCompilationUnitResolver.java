@@ -644,13 +644,14 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 		JavacUtils.configureJavacContext(context, compilerOptions, javaProject, JavacUtils.isTest(javaProject, sourceUnits), ignoreModule);
 		Options javacOptions = Options.instance(context);
 		javacOptions.put("allowStringFolding", Boolean.FALSE.toString()); // we need to keep strings as authored
+		boolean forceProblemDetection = (flags & CompilationUnitResolver.FORCE_PROBLEM_DETECTION) != 0;
 		if (focalPoint >= 0) {
 			// Skip doclint by default, will be re-enabled in the TaskListener if focalPoint is in Javadoc
 			javacOptions.remove(Option.XDOCLINT.primaryName);
 			javacOptions.remove(Option.XDOCLINT_CUSTOM.primaryName);
 			// minimal linting, but "raw" still seems required
 			javacOptions.put(Option.XLINT_CUSTOM, "raw");
-		} else if ((flags & ICompilationUnit.FORCE_PROBLEM_DETECTION) == 0) {
+		} else if (!forceProblemDetection) {
 			// minimal linting, but "raw" still seems required
 			javacOptions.put(Option.XLINT_CUSTOM, "raw");
 			// set minimal custom DocLint support to get DCComment bindings resolved
@@ -1012,7 +1013,6 @@ public class JavacCompilationUnitResolver implements ICompilationUnitResolver {
 				}
 			}
 
-			boolean forceProblemDetection = (flags & ICompilationUnit.FORCE_PROBLEM_DETECTION) != 0;
 			boolean forceBindingRecovery = (flags & ICompilationUnit.ENABLE_BINDINGS_RECOVERY) != 0;
 			var aptPath = fileManager.getLocation(StandardLocation.ANNOTATION_PROCESSOR_PATH);
 			boolean aptPathForceAnalyze = (aptPath != null && aptPath.iterator().hasNext());
